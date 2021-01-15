@@ -76,8 +76,6 @@ public:
 // Test if raw_ostream& << T -> raw_ostream& is findable via ADL.
 template <class T> class has_StreamOperator {
 public:
-  using ConstRefT = const std::decay_t<T> &;
-
   template <typename U>
   static char test(
       std::enable_if_t<std::is_same<decltype(std::declval<llvm::raw_ostream &>()
@@ -87,7 +85,8 @@ public:
 
   template <typename U> static double test(...);
 
-  static bool const value = (sizeof(test<ConstRefT>(nullptr)) == 1);
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  static bool const value = (sizeof(test<T>(nullptr)) == 1);
 };
 
 // Simple template that decides whether a type T should use the member-function
