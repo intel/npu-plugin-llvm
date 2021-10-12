@@ -22,6 +22,7 @@
 #include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Verifier.h"
@@ -1598,6 +1599,34 @@ void TestReflectBoundsOp::inferResultRanges(
   setSminAttr(b.getIndexAttr(range.smin().getSExtValue()));
   setSmaxAttr(b.getIndexAttr(range.smax().getSExtValue()));
   setResultRanges(getResult(), range);
+}
+
+//===----------------------------------------------------------------------===//
+// FormatOperandOptionalTypeOp
+//===----------------------------------------------------------------------===//
+
+static bool isDefinedAbove(Value val, Operation *op) {
+  if (val.isa<BlockArgument>())
+    return true;
+
+  return val.getDefiningOp()->getBlock() == op->getBlock() &&
+         val.getDefiningOp()->isBeforeInBlock(op);
+}
+
+static void printOptionalType(OpAsmPrinter &printer,
+                              FormatOperandOptionalTypeOp op, Type type) {
+  if (isDefinedAbove(op.getOperand(), op))
+    return;
+
+  printer << ":";
+  printer.printType(type);
+}
+
+static ParseResult parseOptionalType(OpAsmParser &parser, Type &type) {
+  if (parser.parseOptionalColon())
+    return success();
+
+  return parser.parseType(type);
 }
 
 #include "TestOpEnums.cpp.inc"
