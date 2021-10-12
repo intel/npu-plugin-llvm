@@ -675,3 +675,31 @@ func.func @error_at_end_of_line() {
 // -----
 
 @foo   // expected-error {{expected operation name in quotes}}
+
+// -----
+
+// expected-note@+1 {{defined here}}
+func.func @foo(%arg0: i64, %arg1: memref<1xf64>) {
+    cf.br ^bb1
+
+  ^bb1:
+    // expected-error@+1 {{value '%arg1' was defined in separate block and requires explicit type definition}}
+    test.format_operand_optional_type_op %arg0, %arg1
+    return
+}
+
+// -----
+
+func.func @foo() {
+    cf.br ^bb2
+
+  ^bb1:
+    // expected-error@+1 {{forward reference of value '%1' requires explicit type specification}}
+    test.format_operand_optional_type_op %0, %1
+    return
+
+  ^bb2:
+    %0 = arith.constant 0 : i64
+    %1 = memref.alloc() : memref<1xf64>
+    cf.br ^bb1
+}
