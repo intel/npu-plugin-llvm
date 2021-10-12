@@ -151,6 +151,12 @@ static ParseResult parseCustomDirectiveOptionalOperandRef(
   bool expectedOptionalOperand = operandCount == 0;
   return success(expectedOptionalOperand != optOperand.has_value());
 }
+static ParseResult parseOptionalType(OpAsmParser &parser, Type &type) {
+  if (parser.parseOptionalColon())
+    return success();
+
+  return parser.parseType(type);
+}
 
 //===----------------------------------------------------------------------===//
 // Printing
@@ -230,6 +236,21 @@ static void printCustomDirectiveOptionalOperandRef(OpAsmPrinter &printer,
                                                    Operation *op,
                                                    Value optOperand) {
   printer << (optOperand ? "1" : "0");
+}
+static bool isDefinedAbove(Value val, Operation *op) {
+  if (val.isa<BlockArgument>())
+    return true;
+
+  return val.getDefiningOp()->getBlock() == op->getBlock() &&
+         val.getDefiningOp()->isBeforeInBlock(op);
+}
+static void printOptionalType(OpAsmPrinter &printer,
+                              FormatOperandOptionalTypeOp op, Type type) {
+  if (isDefinedAbove(op.getOperand(), op))
+    return;
+
+  printer << ":";
+  printer.printType(type);
 }
 //===----------------------------------------------------------------------===//
 // Test parser.
