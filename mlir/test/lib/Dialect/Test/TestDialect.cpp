@@ -23,6 +23,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/ODSSupport.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Verifier.h"
@@ -2048,6 +2049,34 @@ void TestStoreWithARegion::getSuccessorRegions(
 MutableOperandRange TestStoreWithARegionTerminator::getMutableSuccessorOperands(
     std::optional<unsigned> index) {
   return MutableOperandRange(getOperation());
+}
+
+//===----------------------------------------------------------------------===//
+// FormatOperandOptionalTypeOp
+//===----------------------------------------------------------------------===//
+
+static bool isDefinedAbove(Value val, Operation *op) {
+  if (val.isa<BlockArgument>())
+    return true;
+
+  return val.getDefiningOp()->getBlock() == op->getBlock() &&
+         val.getDefiningOp()->isBeforeInBlock(op);
+}
+
+static void printOptionalType(OpAsmPrinter &printer,
+                              FormatOperandOptionalTypeOp op, Type type) {
+  if (isDefinedAbove(op.getOperand(), op))
+    return;
+
+  printer << ":";
+  printer.printType(type);
+}
+
+static ParseResult parseOptionalType(OpAsmParser &parser, Type &type) {
+  if (parser.parseOptionalColon())
+    return success();
+
+  return parser.parseType(type);
 }
 
 #include "TestOpEnums.cpp.inc"
