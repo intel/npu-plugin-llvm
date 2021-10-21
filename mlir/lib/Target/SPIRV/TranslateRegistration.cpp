@@ -108,7 +108,7 @@ namespace mlir {
 void registerToSPIRVTranslation() {
   TranslateFromMLIRRegistration toBinary(
       "serialize-spirv",
-      [](ModuleOp module, raw_ostream &output) {
+      [](ModuleOp module, raw_ostream &output, StringRef) {
         return serializeModule(module, output);
       },
       [](DialectRegistry &registry) {
@@ -163,7 +163,7 @@ namespace mlir {
 void registerTestRoundtripSPIRV() {
   TranslateFromMLIRRegistration roundtrip(
       "test-spirv-roundtrip",
-      [](ModuleOp module, raw_ostream &output) {
+      [](ModuleOp module, raw_ostream &output, StringRef) {
         return roundTripModule(module, /*emitDebugInfo=*/false, output);
       },
       [](DialectRegistry &registry) {
@@ -174,7 +174,7 @@ void registerTestRoundtripSPIRV() {
 void registerTestRoundtripDebugSPIRV() {
   TranslateFromMLIRRegistration roundtrip(
       "test-spirv-roundtrip-debug",
-      [](ModuleOp module, raw_ostream &output) {
+      [](ModuleOp module, raw_ostream &output, StringRef) {
         return roundTripModule(module, /*emitDebugInfo=*/true, output);
       },
       [](DialectRegistry &registry) {

@@ -57,7 +57,7 @@ TranslateRegistration::TranslateRegistration(
 static void registerTranslateToMLIRFunction(
     StringRef name, const TranslateSourceMgrToMLIRFunction &function) {
   auto wrappedFn = [function](llvm::SourceMgr &sourceMgr, raw_ostream &output,
-                              MLIRContext *context) {
+                              StringRef, MLIRContext *context) {
     OwningOpRef<ModuleOp> module = function(sourceMgr, context);
     if (!module || failed(verify(*module)))
       return failure();
@@ -93,6 +93,7 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
     const std::function<void(DialectRegistry &)> &dialectRegistration) {
   registerTranslation(name, [function, dialectRegistration](
                                 llvm::SourceMgr &sourceMgr, raw_ostream &output,
+                                StringRef outputFileName,
                                 MLIRContext *context) {
     DialectRegistry registry;
     dialectRegistration(registry);
@@ -100,7 +101,7 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
     auto module = parseSourceFile<ModuleOp>(sourceMgr, context);
     if (!module || failed(verify(*module)))
       return failure();
-    return function(module.get(), output);
+    return function(module.get(), output, outputFileName);
   });
 }
 

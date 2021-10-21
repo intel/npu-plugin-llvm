@@ -87,14 +87,14 @@ LogicalResult mlir::mlirTranslateMain(int argc, char **argv,
 
     if (!verifyDiagnostics) {
       SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);
-      return (*translationRequested)(sourceMgr, os, &context);
+      return (*translationRequested)(sourceMgr, os, outputFilename, &context);
     }
 
     // In the diagnostic verification flow, we ignore whether the translation
     // failed (in most cases, it is expected to fail). Instead, we check if the
     // diagnostics were produced as expected.
     SourceMgrDiagnosticVerifierHandler sourceMgrHandler(sourceMgr, &context);
-    (void)(*translationRequested)(sourceMgr, os, &context);
+    (void)(*translationRequested)(sourceMgr, os, outputFilename, &context);
     return sourceMgrHandler.verify();
   };
 
