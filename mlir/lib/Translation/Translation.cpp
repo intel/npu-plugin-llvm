@@ -61,7 +61,7 @@ TranslateRegistration::TranslateRegistration(
 static void registerTranslateToMLIRFunction(
     StringRef name, const TranslateSourceMgrToMLIRFunction &function) {
   auto wrappedFn = [function](llvm::SourceMgr &sourceMgr, raw_ostream &output,
-                              MLIRContext *context) {
+                              StringRef, MLIRContext *context) {
     OwningOpRef<ModuleOp> module = function(sourceMgr, context);
     if (!module || failed(verify(*module)))
       return failure();
@@ -97,6 +97,7 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
     const std::function<void(DialectRegistry &)> &dialectRegistration) {
   registerTranslation(name, [function, dialectRegistration](
                                 llvm::SourceMgr &sourceMgr, raw_ostream &output,
+                                StringRef outputFileName,
                                 MLIRContext *context) {
     DialectRegistry registry;
     dialectRegistration(registry);
@@ -104,7 +105,7 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
     auto module = OwningOpRef<ModuleOp>(parseSourceFile(sourceMgr, context));
     if (!module || failed(verify(*module)))
       return failure();
-    return function(module.get(), output);
+    return function(module.get(), output, outputFileName);
   });
 }
 
@@ -185,14 +186,14 @@ LogicalResult mlir::mlirTranslateMain(int argc, char **argv,
 
     if (!verifyDiagnostics) {
       SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);
-      return (*translationRequested)(sourceMgr, os, &context);
+      return (*translationRequested)(sourceMgr, os, outputFilename, &context);
     }
 
     // In the diagnostic verification flow, we ignore whether the translation
     // failed (in most cases, it is expected to fail). Instead, we check if the
     // diagnostics were produced as expected.
     SourceMgrDiagnosticVerifierHandler sourceMgrHandler(sourceMgr, &context);
-    (void)(*translationRequested)(sourceMgr, os, &context);
+    (void)(*translationRequested)(sourceMgr, os, outputFilename, &context);
     return sourceMgrHandler.verify();
   };
 

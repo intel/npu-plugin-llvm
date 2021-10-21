@@ -44,8 +44,8 @@ using TranslateStringRefToMLIRFunction =
 
 /// Interface of the function that translates MLIR to a different format and
 /// outputs the result to a stream. It is allowed to modify the module.
-using TranslateFromMLIRFunction =
-    std::function<LogicalResult(ModuleOp, llvm::raw_ostream &output)>;
+using TranslateFromMLIRFunction = std::function<LogicalResult(
+    ModuleOp, llvm::raw_ostream &output, llvm::StringRef outputFileName)>;
 
 /// Interface of the function that performs file-to-file translation involving
 /// MLIR. The input file is held in the given MemoryBuffer; the output file
@@ -53,7 +53,8 @@ using TranslateFromMLIRFunction =
 /// all MLIR constructs needed during the process inside the given context. This
 /// can be used for round-tripping external formats through the MLIR system.
 using TranslateFunction = std::function<LogicalResult(
-    llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output, MLIRContext *)>;
+    llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output,
+    llvm::StringRef outputFileName, MLIRContext *)>;
 
 /// Use Translate[ToMLIR|FromMLIR]Registration as an initializer that
 /// registers a function and associates it with name. This requires that a

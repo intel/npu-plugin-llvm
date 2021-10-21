@@ -33,7 +33,7 @@ void registerToCppTranslation() {
 
   TranslateFromMLIRRegistration reg(
       "mlir-to-cpp",
-      [](ModuleOp module, raw_ostream &output) {
+      [](ModuleOp module, raw_ostream &output, StringRef) {
         return emitc::translateToCpp(
             module, output,
             /*declareVariablesAtTop=*/declareVariablesAtTop);
