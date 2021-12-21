@@ -472,7 +472,7 @@ bool mlir::detail::isSupportedMemorySpace(Attribute memorySpace) {
     return true;
 
   // Supported built-in attributes.
-  if (memorySpace.isa<IntegerAttr, StringAttr, DictionaryAttr>())
+  if (memorySpace.isa<IntegerAttr, StringAttr, DictionaryAttr, SymbolRefAttr>())
     return true;
 
   // Allow custom dialect attributes.
