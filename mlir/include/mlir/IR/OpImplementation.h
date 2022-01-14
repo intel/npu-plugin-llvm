@@ -1361,13 +1361,14 @@ public:
   ParseResult resolveOperands(ArrayRef<UnresolvedOperand> operands,
                               ArrayRef<Type> types, SMLoc loc,
                               SmallVectorImpl<Value> &result) {
-    if (operands.size() != types.size())
+    if (!types.empty() && operands.size() != types.size())
       return emitError(loc)
              << operands.size() << " operands present, but expected "
              << types.size();
 
     for (unsigned i = 0, e = operands.size(); i != e; ++i)
-      if (resolveOperand(operands[i], types[i], result))
+      if (resolveOperand(operands[i], types.empty() ? Type() : types[i],
+                         result))
         return failure();
     return success();
   }
@@ -1383,13 +1384,19 @@ public:
                   SmallVectorImpl<Value> &result) {
     size_t operandSize = std::distance(operands.begin(), operands.end());
     size_t typeSize = std::distance(types.begin(), types.end());
-    if (operandSize != typeSize)
+    if (typeSize != 0 && operandSize != typeSize)
       return emitError(loc)
              << operandSize << " operands present, but expected " << typeSize;
 
-    for (auto it : llvm::zip(operands, types))
-      if (resolveOperand(std::get<0>(it), std::get<1>(it), result))
-        return failure();
+    if (typeSize == 0) {
+      for (auto it : operands)
+        if (resolveOperand(it, Type(), result))
+          return failure();
+    } else {
+      for (auto it : llvm::zip(operands, types))
+        if (resolveOperand(std::get<0>(it), std::get<1>(it), result))
+          return failure();
+    }
     return success();
   }
 
