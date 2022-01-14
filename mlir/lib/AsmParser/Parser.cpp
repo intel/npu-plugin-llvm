@@ -984,17 +984,6 @@ Value OperationParser::resolveSSAUse(UnresolvedOperand useInfo, Type type) {
       return nullptr;
     }
 
-    // Explicit type specification can be omitted, only if the Value was already
-    // defined prior in the same block.
-    if (!type && result.getParentBlock() != opBuilder.getBlock()) {
-      emitError(useInfo.location, "value '")
-          .append(useInfo.name, "' was defined in separate block and requires "
-                                "explicit type definition")
-          .attachNote(getEncodedSourceLocation(entries[useInfo.number].loc))
-          .append("defined here");
-      return nullptr;
-    }
-
     return maybeRecordUse(result);
   }
 
