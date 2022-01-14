@@ -1565,13 +1565,19 @@ public:
                   SmallVectorImpl<Value> &result) {
     size_t operandSize = llvm::range_size(operands);
     size_t typeSize = llvm::range_size(types);
-    if (operandSize != typeSize)
+    if (typeSize != 0 && operandSize != typeSize)
       return emitError(loc)
              << operandSize << " operands present, but expected " << typeSize;
 
-    for (auto [operand, type] : llvm::zip_equal(operands, types))
-      if (resolveOperand(operand, type, result))
-        return failure();
+    if (typeSize == 0) {
+      for (auto it : operands)
+        if (resolveOperand(it, Type(), result))
+          return failure();
+    } else {
+      for (auto [operand, type] : llvm::zip_equal(operands, types))
+        if (resolveOperand(operand, type, result))
+          return failure();
+    }
     return success();
   }
 
