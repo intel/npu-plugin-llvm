@@ -7,13 +7,6 @@ func.func @alloca_ptr_type_attr_non_opaque_ptr(%sz : i64) {
 
 // -----
 
-func.func @gep_missing_input_type(%pos : i64, %base : !llvm.ptr<f32>) {
-  // expected-error@+1 {{2 operands present, but expected 0}}
-  llvm.getelementptr %base[%pos] : () -> (!llvm.ptr<f32>)
-}
-
-// -----
-
 func.func @gep_missing_result_type(%pos : i64, %base : !llvm.ptr<f32>) {
   // expected-error@+1 {{op requires one result}}
   llvm.getelementptr %base[%pos] : (!llvm.ptr<f32>, i64) -> ()
