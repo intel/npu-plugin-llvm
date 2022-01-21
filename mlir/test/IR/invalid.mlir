@@ -1641,18 +1641,6 @@ func @foo() {} // expected-error {{expected non-empty function body}}
 
 // -----
 
-// expected-note@+1 {{defined here}}
-func @foo(%arg0: i64, %arg1: memref<1xf64>) {
-    br ^bb1
-
-  ^bb1:
-    // expected-error@+1 {{value '%arg1' was defined in separate block and requires explicit type definition}}
-    test.format_operand_optional_type_op %arg0, %arg1
-    return
-}
-
-// -----
-
 func @foo() {
     br ^bb2
 
