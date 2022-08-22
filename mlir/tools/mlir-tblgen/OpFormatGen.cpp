@@ -840,7 +840,7 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
       }
     } else {
       body << "  ::mlir::OpAsmParser::UnresolvedOperand " << name
-           << "RawOperands[1];\n"
+           << "RawOperands[1] = { };\n"
            << "  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> "
            << name << "Operands(" << name << "RawOperands);";
     }
@@ -877,7 +877,7 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
     if (lengthKind != ArgumentLengthKind::Single)
       body << "  ::llvm::SmallVector<::mlir::Type, 1> " << name << "Types;\n";
     else
-      body << llvm::formatv("  ::mlir::Type {0}RawTypes[1];\n", name)
+      body << llvm::formatv("  ::mlir::Type {0}RawTypes[1] = {{ };\n", name)
            << llvm::formatv(
                   "  ::llvm::ArrayRef<::mlir::Type> {0}Types({0}RawTypes);\n",
                   name);
