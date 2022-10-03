@@ -99,8 +99,9 @@ protected:
   ///
   /// This does not construct or destroy any elements in the vector.
   void set_size(size_t N) {
-    assert(N <= capacity()); // implies no overflow in assignment
-    Size = static_cast<Size_T>(N);
+    auto n = static_cast<Size_T>(N);
+    assert(n <= capacity());
+    Size = n;
   }
 
   /// Set the array data pointer to \p Begin and capacity to \p N.
