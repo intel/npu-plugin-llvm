@@ -43,11 +43,8 @@ macro(set_flag_in_var flagsvar regex flag)
     string(REGEX REPLACE "${${regex}}" "${${flag}}" ${flagsvar} "${${flagsvar}}")
   endif()
   string(STRIP "${${flagsvar}}" ${flagsvar})
-  # Make sure this change gets reflected in the cache/gui.
-  # CMake requires the docstring parameter whenever set() touches the cache,
-  # so get the existing docstring and re-use that.
-  get_property(flagsvar_docs CACHE ${flagsvar} PROPERTY HELPSTRING)
-  set(${flagsvar} "${${flagsvar}}" CACHE STRING "${flagsvar_docs}" FORCE)
+
+  set(${flagsvar} "${${flagsvar}}")
 endmacro(set_flag_in_var)
 
 
