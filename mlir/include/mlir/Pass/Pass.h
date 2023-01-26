@@ -164,6 +164,13 @@ protected:
       : passID(passID), opName(opName) {}
   Pass(const Pass &other) : Pass(other.passID, other.opName) {}
 
+  Pass& operator=(const Pass &other) {
+    this->passID = other.passID;
+    this->opName = other.opName;
+
+    return *this;
+  }
+
   /// Returns the current pass state.
   detail::PassExecutionState &getPassState() {
     assert(passState && "pass state was never initialized");
