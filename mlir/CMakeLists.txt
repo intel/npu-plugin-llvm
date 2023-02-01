@@ -119,6 +119,10 @@ set(MLIR_ENABLE_ROCM_RUNNER 0 CACHE BOOL "Enable building the mlir ROCm runner")
 set(MLIR_ENABLE_SPIRV_CPU_RUNNER 0 CACHE BOOL "Enable building the mlir SPIR-V cpu runner")
 set(MLIR_ENABLE_VULKAN_RUNNER 0 CACHE BOOL "Enable building the mlir Vulkan runner")
 
+option(MLIR_DIALECT_SPIRV_ENABLE
+       "Enable build targets related to SPIR-V dialect."
+       ON)
+
 option(MLIR_INCLUDE_TESTS
        "Generate build targets for the MLIR unit tests."
        ${LLVM_INCLUDE_TESTS})
