@@ -162,6 +162,13 @@ protected:
       : passID(passID), opName(opName) {}
   Pass(const Pass &other) : Pass(other.passID, other.opName) {}
 
+  Pass& operator=(const Pass &other) {
+    this->passID = other.passID;
+    this->opName = other.opName;
+
+    return *this;
+  }
+
   /// Returns the current pass state.
   detail::PassExecutionState &getPassState() {
     assert(passState && "pass state was never initialized");
@@ -352,6 +359,7 @@ class OperationPass : public Pass {
 protected:
   OperationPass(TypeID passID) : Pass(passID, OpT::getOperationName()) {}
   OperationPass(const OperationPass &) = default;
+  OperationPass& operator=(const OperationPass &) = default;
 
   /// Support isa/dyn_cast functionality.
   static bool classof(const Pass *pass) {
@@ -391,6 +399,7 @@ class OperationPass<void> : public Pass {
 protected:
   OperationPass(TypeID passID) : Pass(passID) {}
   OperationPass(const OperationPass &) = default;
+  OperationPass& operator=(const OperationPass &) = default;
 
   /// Indicate if the current pass can be scheduled on the given operation type.
   /// By default, generic operation passes can be scheduled on any operation.
@@ -415,6 +424,8 @@ template <typename InterfaceT>
 class InterfacePass : public OperationPass<> {
 protected:
   using OperationPass::OperationPass;
+  InterfacePass(const InterfacePass &) = default;
+  InterfacePass& operator=(const InterfacePass &) = default;
 
   /// Indicate if the current pass can be scheduled on the given operation type.
   /// For an InterfacePass, this checks if the operation implements the given
