@@ -164,6 +164,13 @@ protected:
       : passID(passID), opName(opName) {}
   Pass(const Pass &other) : Pass(other.passID, other.opName) {}
 
+  Pass& operator=(const Pass &other) {
+    this->passID = other.passID;
+    this->opName = other.opName;
+
+    return *this;
+  }
+
   /// Returns the current pass state.
   detail::PassExecutionState &getPassState() {
     assert(passState && "pass state was never initialized");
@@ -340,6 +347,7 @@ template <typename OpT = void> class OperationPass : public Pass {
 protected:
   OperationPass(TypeID passID) : Pass(passID, OpT::getOperationName()) {}
   OperationPass(const OperationPass &) = default;
+  OperationPass& operator=(const OperationPass &) = default;
 
   /// Support isa/dyn_cast functionality.
   static bool classof(const Pass *pass) {
@@ -373,6 +381,7 @@ template <> class OperationPass<void> : public Pass {
 protected:
   OperationPass(TypeID passID) : Pass(passID) {}
   OperationPass(const OperationPass &) = default;
+  OperationPass& operator=(const OperationPass &) = default;
 };
 
 /// NOTICE: This class is deprecated in favor of `OperationPass<FuncOp>`
@@ -390,6 +399,7 @@ class [[deprecated(
     : public OperationPass<FuncOp> {
 public:
   using OperationPass<FuncOp>::OperationPass;
+  FunctionPass& operator=(const FunctionPass &) = default;
 
   /// The polymorphic API that runs the pass over the currently held function.
   virtual void runOnFunction() = 0;
