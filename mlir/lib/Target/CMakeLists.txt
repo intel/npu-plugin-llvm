@@ -1,0 +1,5 @@
+add_subdirectory(Cpp)
+if(MLIR_DIALECT_SPIRV_ENABLE)
+  add_subdirectory(SPIRV)
+endif()
+add_subdirectory(LLVMIR)
