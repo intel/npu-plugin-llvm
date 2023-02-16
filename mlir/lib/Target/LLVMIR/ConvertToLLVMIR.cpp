@@ -23,7 +23,7 @@ namespace mlir {
 void registerToLLVMIRTranslation() {
   TranslateFromMLIRRegistration registration(
       "mlir-to-llvmir",
-      [](ModuleOp module, raw_ostream &output) {
+      [](ModuleOp module, raw_ostream &output, StringRef) {
         llvm::LLVMContext llvmContext;
         auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
         if (!llvmModule)

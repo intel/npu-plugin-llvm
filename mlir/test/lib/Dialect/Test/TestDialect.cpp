@@ -16,6 +16,7 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Reducer/ReductionPatternInterface.h"
@@ -1235,6 +1236,34 @@ static void print(SingleNoTerminatorCustomAsmOp op, OpAsmPrinter &printer) {
       // This op has a single block without terminators. But explicitly mark
       // as not printing block terminators for testing.
       /*printBlockTerminators=*/false);
+}
+
+//===----------------------------------------------------------------------===//
+// FormatOperandOptionalTypeOp
+//===----------------------------------------------------------------------===//
+
+static bool isDefinedAbove(Value val, Operation *op) {
+  if (val.isa<BlockArgument>())
+    return true;
+
+  return val.getDefiningOp()->getBlock() == op->getBlock() &&
+         val.getDefiningOp()->isBeforeInBlock(op);
+}
+
+static void printOptionalType(OpAsmPrinter &printer,
+                              FormatOperandOptionalTypeOp op, Type type) {
+  if (isDefinedAbove(op.getOperand(), op))
+    return;
+
+  printer << ":";
+  printer.printType(type);
+}
+
+static ParseResult parseOptionalType(OpAsmParser &parser, Type &type) {
+  if (parser.parseOptionalColon())
+    return success();
+
+  return parser.parseType(type);
 }
 
 #include "TestOpEnums.cpp.inc"

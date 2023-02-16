@@ -751,7 +751,7 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
       }
     } else {
       body << "  ::mlir::OpAsmParser::OperandType " << name
-           << "RawOperands[1];\n"
+           << "RawOperands[1] = { };\n"
            << "  ::llvm::ArrayRef<::mlir::OpAsmParser::OperandType> " << name
            << "Operands(" << name << "RawOperands);";
     }
@@ -788,7 +788,7 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
     if (lengthKind != ArgumentLengthKind::Single)
       body << "  ::mlir::SmallVector<::mlir::Type, 1> " << name << "Types;\n";
     else
-      body << llvm::formatv("  ::mlir::Type {0}RawTypes[1];\n", name)
+      body << llvm::formatv("  ::mlir::Type {0}RawTypes[1] = {{ };\n", name)
            << llvm::formatv(
                   "  ::llvm::ArrayRef<::mlir::Type> {0}Types({0}RawTypes);\n",
                   name);
@@ -1613,7 +1613,7 @@ static void genCustomDirectiveParameterPrinter(FormatElement *element,
     if (var->isVariadic())
       body << name << "().getTypes()";
     else if (var->isOptional())
-      body << llvm::formatv("({0}() ? {0}().getType() : Type())", name);
+      body << llvm::formatv("({0}() ? {0}().getType() : ::mlir::Type())", name);
     else
       body << name << "().getType()";
   } else {
