@@ -227,4 +227,6 @@ def SymbolUserOpInterface : OpInterface<"SymbolUserOpInterface"> {
 // Op defines a symbol table.
 def SymbolTable : NativeOpTrait<"SymbolTable">;
 
+def SymbolContainer : NativeOpTrait<"SymbolContainer">;
+
 #endif // MLIR_IR_SYMBOLINTERFACES

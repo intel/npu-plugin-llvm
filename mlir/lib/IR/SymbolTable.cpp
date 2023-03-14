@@ -56,8 +56,9 @@ collectValidReferencesFor(Operation *symbol, StringAttr symbolName,
   StringAttr symbolNameId =
       StringAttr::get(ctx, SymbolTable::getSymbolAttrName());
   do {
-    // Each parent of 'symbol' should define a symbol table.
-    if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>())
+    // Each parent of 'symbol' should define a symbol table or be a symbol container
+    if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>() &&
+          !symbolTableOp->hasTrait<OpTrait::SymbolContainer>())
       return failure();
     // Each parent of 'symbol' should also be a symbol.
     StringAttr symbolTableName = getNameIfSymbol(symbolTableOp, symbolNameId);
@@ -384,7 +385,7 @@ void SymbolTable::walkSymbolTables(
 /// was found.
 Operation *SymbolTable::lookupSymbolIn(Operation *symbolTableOp,
                                        StringAttr symbol) {
-  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>());
+  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>() || symbolTableOp->hasTrait<OpTrait::SymbolContainer>());
   Region &region = symbolTableOp->getRegion(0);
   if (region.empty())
     return nullptr;
@@ -425,7 +426,7 @@ static LogicalResult lookupSymbolInImpl(
     return success();
 
   // Verify that the root is also a symbol table.
-  if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>())
+  if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>() && !symbolTableOp->hasTrait<OpTrait::SymbolContainer>())
     return failure();
 
   // Otherwise, lookup each of the nested non-leaf references and ensure that
@@ -702,7 +703,7 @@ static SmallVector<SymbolScope, 2> collectSymbolScopes(Operation *symbol,
     Operation *limitIt = symbol->getParentOp();
     for (size_t i = 0, e = references.size(); i != e;
          ++i, limitIt = limitIt->getParentOp()) {
-      assert(limitIt->hasTrait<OpTrait::SymbolTable>());
+      assert(limitIt->hasTrait<OpTrait::SymbolTable>() || limitIt->hasTrait<OpTrait::SymbolContainer>());
       scopes.push_back({references[i], &limitIt->getRegion(0)});
     }
     return scopes;
@@ -866,23 +867,26 @@ bool SymbolTable::symbolKnownUseEmpty(Operation *symbol, Region *from) {
 
 /// Generates a new symbol reference attribute with a new leaf reference.
 static SymbolRefAttr generateNewRefAttr(SymbolRefAttr oldAttr,
-                                        FlatSymbolRefAttr newLeafAttr) {
+                                        SymbolRefAttr newLeafAttr) {
   if (llvm::isa<FlatSymbolRefAttr>(oldAttr))
     return newLeafAttr;
   auto nestedRefs = llvm::to_vector<2>(oldAttr.getNestedReferences());
-  nestedRefs.back() = newLeafAttr;
+  nestedRefs.back() = FlatSymbolRefAttr::get(newLeafAttr.getRootReference());
+
+  nestedRefs.append(newLeafAttr.getNestedReferences().begin(),
+                    newLeafAttr.getNestedReferences().end());
+
   return SymbolRefAttr::get(oldAttr.getRootReference(), nestedRefs);
 }
 
 /// The implementation of SymbolTable::replaceAllSymbolUses below.
 template <typename SymbolT, typename IRUnitT>
 static LogicalResult
-replaceAllSymbolUsesImpl(SymbolT symbol, StringAttr newSymbol, IRUnitT *limit) {
+replaceAllSymbolUsesImpl(SymbolT symbol, SymbolRefAttr newSymbol, IRUnitT *limit) {
   // Generate a new attribute to replace the given attribute.
-  FlatSymbolRefAttr newLeafAttr = FlatSymbolRefAttr::get(newSymbol);
   for (SymbolScope &scope : collectSymbolScopes(symbol, limit)) {
     SymbolRefAttr oldAttr = scope.symbol;
-    SymbolRefAttr newAttr = generateNewRefAttr(scope.symbol, newLeafAttr);
+    SymbolRefAttr newAttr = generateNewRefAttr(scope.symbol, newSymbol);
     AttrTypeReplacer replacer;
     replacer.addReplacement(
         [&](SymbolRefAttr attr) -> std::pair<Attribute, WalkResult> {
@@ -895,11 +899,12 @@ replaceAllSymbolUsesImpl(SymbolT symbol, StringAttr newSymbol, IRUnitT *limit) {
             auto oldNestedRefs = oldAttr.getNestedReferences();
             auto nestedRefs = attr.getNestedReferences();
             if (oldNestedRefs.empty())
-              return {SymbolRefAttr::get(newSymbol, nestedRefs),
-                      WalkResult::skip()};
+              return {newAttr, WalkResult::skip()};
 
             auto newNestedRefs = llvm::to_vector<4>(nestedRefs);
-            newNestedRefs[oldNestedRefs.size() - 1] = newLeafAttr;
+            newNestedRefs[oldNestedRefs.size() - 1] = FlatSymbolRefAttr::get(newAttr.getRootReference());
+            newNestedRefs.append(newAttr.getNestedReferences().begin(),
+                              newAttr.getNestedReferences().end());
             return {SymbolRefAttr::get(attr.getRootReference(), newNestedRefs),
                     WalkResult::skip()};
           }
@@ -924,21 +929,38 @@ replaceAllSymbolUsesImpl(SymbolT symbol, StringAttr newSymbol, IRUnitT *limit) {
 LogicalResult SymbolTable::replaceAllSymbolUses(StringAttr oldSymbol,
                                                 StringAttr newSymbol,
                                                 Operation *from) {
-  return replaceAllSymbolUsesImpl(oldSymbol, newSymbol, from);
+  auto newSymRef = mlir::FlatSymbolRefAttr::get(newSymbol);
+  return replaceAllSymbolUsesImpl(oldSymbol, newSymRef, from);
 }
 LogicalResult SymbolTable::replaceAllSymbolUses(Operation *oldSymbol,
                                                 StringAttr newSymbol,
                                                 Operation *from) {
-  return replaceAllSymbolUsesImpl(oldSymbol, newSymbol, from);
+  auto newSymRef = mlir::FlatSymbolRefAttr::get(newSymbol);
+  return replaceAllSymbolUsesImpl(oldSymbol, newSymRef, from);
 }
 LogicalResult SymbolTable::replaceAllSymbolUses(StringAttr oldSymbol,
                                                 StringAttr newSymbol,
                                                 Region *from) {
-  return replaceAllSymbolUsesImpl(oldSymbol, newSymbol, from);
+  auto newSymRef = mlir::FlatSymbolRefAttr::get(newSymbol);
+  return replaceAllSymbolUsesImpl(oldSymbol, newSymRef, from);
 }
 LogicalResult SymbolTable::replaceAllSymbolUses(Operation *oldSymbol,
                                                 StringAttr newSymbol,
                                                 Region *from) {
+  auto newSymRef = mlir::FlatSymbolRefAttr::get(newSymbol);
+  return replaceAllSymbolUsesImpl(oldSymbol, newSymRef, from);
+}
+
+LogicalResult SymbolTable::replaceAllSymbolUses(Operation* oldSymbol,
+                                                SymbolRefAttr newSymbol,
+                                                Operation* from) {
+  return replaceAllSymbolUsesImpl(oldSymbol, newSymbol, from);
+}
+
+
+LogicalResult SymbolTable::replaceAllSymbolUses(Operation* oldSymbol,
+                                                SymbolRefAttr newSymbol,
+                                                Region* from) {
   return replaceAllSymbolUsesImpl(oldSymbol, newSymbol, from);
 }
 
