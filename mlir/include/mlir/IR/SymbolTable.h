@@ -259,6 +259,12 @@ public:
                                             StringAttr newSymbolName,
                                             Region *from);
 
+  static LogicalResult replaceAllSymbolUses(Operation *oldSymbol,
+                                            SymbolRefAttr newSymbolName,
+                                            Operation *from);
+  static LogicalResult replaceAllSymbolUses(Operation *oldSymbol,
+                                            SymbolRefAttr newSymbolName,
+                                            Region *from);
 private:
   Operation *symbolTableOp;
 
@@ -437,6 +443,40 @@ public:
   static LogicalResult verifyRegionTrait(Operation *op) {
     return ::mlir::detail::verifySymbolTable(op);
   }
+
+  /// Look up a symbol with the specified name, returning null if no such
+  /// name exists. Symbol names never include the @ on them. Note: This
+  /// performs a linear scan of held symbols.
+  Operation *lookupSymbol(StringAttr name) {
+    return mlir::SymbolTable::lookupSymbolIn(this->getOperation(), name);
+  }
+  template <typename T>
+  T lookupSymbol(StringAttr name) {
+    return dyn_cast_or_null<T>(lookupSymbol(name));
+  }
+  Operation *lookupSymbol(SymbolRefAttr symbol) {
+    return mlir::SymbolTable::lookupSymbolIn(this->getOperation(), symbol);
+  }
+  template <typename T>
+  T lookupSymbol(SymbolRefAttr symbol) {
+    return dyn_cast_or_null<T>(lookupSymbol(symbol));
+  }
+
+  Operation *lookupSymbol(StringRef name) {
+    return mlir::SymbolTable::lookupSymbolIn(this->getOperation(), name);
+  }
+  template <typename T>
+  T lookupSymbol(StringRef name) {
+    return dyn_cast_or_null<T>(lookupSymbol(name));
+  }
+};
+
+template <typename ConcreteType>
+class SymbolContainer : public TraitBase<ConcreteType, SymbolContainer> {
+  public:
+    static LogicalResult verifyTrait(Operation *op) {
+      return mlir::success(); //TODO::implement
+    }
 
   /// Look up a symbol with the specified name, returning null if no such
   /// name exists. Symbol names never include the @ on them. Note: This
