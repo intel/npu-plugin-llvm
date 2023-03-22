@@ -399,4 +399,36 @@ class EnumAttr<Dialect dialect, EnumAttrInfo enumInfo, string name = "",
   let assemblyFormat = "$value";
 }
 
+//===----------------------------------------------------------------------===//
+// Temporary restoration of deprecated functionality
+
+// A bit enum case stored with 32-bit IntegerAttr. `val` here is *not* the
+// ordinal number of the bit that is set. It is the 32-bit integer with only
+// one bit set.
+class BitEnumAttrCase<string sym, int val, string str = sym>
+    : I64BitEnumAttrCase<sym, val, str>;
+
+// An enum attribute case stored with StringAttr.
+class StrEnumAttrCase<string sym, int val = -1, string str = sym> :
+    EnumAttrCaseInfo<sym, val, str>,
+    StringBasedAttr<
+      CPred<"$_self.cast<::mlir::StringAttr>().getValue() == \"" # str # "\"">,
+      "case " # str>;
+
+// An enum attribute backed by StringAttr.
+//
+// Op attributes of this kind are stored as StringAttr. Extra verification will
+// be generated on the string though: only the symbols of the allowed cases are
+// permitted as the string value.
+class StrEnumAttr<string name, string summary, list<StrEnumAttrCase> cases> :
+  EnumAttrInfo<name, cases,
+    StringBasedAttr<
+      And<[StrAttr.predicate, Or<!foreach(case, cases, case.predicate)>]>,
+      !if(!empty(summary), "allowed string cases: " #
+          !interleave(!foreach(case, cases, "'" # case.symbol # "'"), ", "),
+          summary)>> {
+  // Disable specialized Attribute class for `StringAttr` backend by default.
+  let genSpecializedAttr = 0;
+}
+
 #endif // ENUMATTR_TD
