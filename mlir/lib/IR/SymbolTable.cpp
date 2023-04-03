@@ -847,6 +847,38 @@ static SymbolRefAttr generateNewRefAttr(SymbolRefAttr oldAttr,
   return SymbolRefAttr::get(oldAttr.getRootReference(), nestedRefs);
 }
 
+/// #-75538
+static Attribute remapAttr(Attribute attr, SymbolRefAttr oldAttr, SymbolRefAttr newAttr) {
+  auto remapAttrFn = [&](Attribute attr) -> Attribute {
+    return remapAttr(attr, oldAttr, newAttr);
+  };
+
+  if (attr == oldAttr)
+    return newAttr;
+  // Handle prefix matches.
+  if (SymbolRefAttr symRef = attr.dyn_cast<SymbolRefAttr>()) {
+    if (isReferencePrefixOf(oldAttr, symRef)) {
+      auto oldNestedRefs = oldAttr.getNestedReferences();
+      auto nestedRefs = symRef.getNestedReferences();
+      if (oldNestedRefs.empty())
+        return newAttr;
+
+      auto newNestedRefs = llvm::to_vector<4>(nestedRefs);
+      newNestedRefs[oldNestedRefs.size() - 1] = FlatSymbolRefAttr::get(newAttr.getRootReference());
+      newNestedRefs.append(newAttr.getNestedReferences().begin(),
+                        newAttr.getNestedReferences().end());
+
+      return SymbolRefAttr::get(symRef.getRootReference(), newNestedRefs);
+    }
+  }
+
+  if(auto replaceSubElemInterface = attr.dyn_cast<SubElementAttrInterface>()) {
+    return replaceSubElemInterface.replaceSubElements(remapAttrFn, /*recursively =*/ false);
+  }
+
+  return attr;
+}
+
 /// The implementation of SymbolTable::replaceAllSymbolUses below.
 template <typename SymbolT, typename IRUnitT>
 static LogicalResult
@@ -858,29 +890,11 @@ replaceAllSymbolUsesImpl(SymbolT symbol, SymbolRefAttr newSymbol, IRUnitT *limit
 
     auto walkFn = [&](Operation *op) -> Optional<WalkResult> {
       auto remapAttrFn = [&](Attribute attr) -> Attribute {
-        if (attr == oldAttr)
-          return newAttr;
-        // Handle prefix matches.
-        if (SymbolRefAttr symRef = attr.dyn_cast<SymbolRefAttr>()) {
-          if (isReferencePrefixOf(oldAttr, symRef)) {
-            auto oldNestedRefs = oldAttr.getNestedReferences();
-            auto nestedRefs = symRef.getNestedReferences();
-            if (oldNestedRefs.empty())
-              return newAttr;
-
-            auto newNestedRefs = llvm::to_vector<4>(nestedRefs);
-            newNestedRefs[oldNestedRefs.size() - 1] = FlatSymbolRefAttr::get(newAttr.getRootReference());
-            newNestedRefs.append(newAttr.getNestedReferences().begin(),
-                              newAttr.getNestedReferences().end());
-
-            return SymbolRefAttr::get(symRef.getRootReference(), newNestedRefs);
-          }
-        }
-        return attr;
+        return remapAttr(attr, oldAttr, newAttr);
       };
       // Generate a new attribute dictionary by replacing references to the old
       // symbol.
-      auto newDict = op->getAttrDictionary().replaceSubElements(remapAttrFn);
+      auto newDict = op->getAttrDictionary().replaceSubElements(remapAttrFn, /*recursively =*/ false);
       if (!newDict)
         return WalkResult::interrupt();
 

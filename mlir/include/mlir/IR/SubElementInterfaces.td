@@ -57,7 +57,8 @@ class SubElementInterfaceBase<string interfaceName, string attrOrType,
     /// provided map functions. Returns nullptr in the case of failure.
     }] # attrOrType # [{ replaceSubElements(
       llvm::function_ref<mlir::Attribute(mlir::Attribute)> replaceAttrFn,
-      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn
+      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn,
+      bool recursively = true
     );
   }];
   code extraTraitClassDeclaration = [{
@@ -72,9 +73,10 @@ class SubElementInterfaceBase<string interfaceName, string attrOrType,
     /// provided map functions. Returns nullptr in the case of failure.
     }] # attrOrType # [{ replaceSubElements(
       llvm::function_ref<mlir::Attribute(mlir::Attribute)> replaceAttrFn,
-      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn) {
+      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn,
+      bool recursively = true) {
       }] # interfaceName # " interface(" # derivedValue # [{);
-      return interface.replaceSubElements(replaceAttrFn, replaceTypeFn);
+      return interface.replaceSubElements(replaceAttrFn, replaceTypeFn, recursively);
     }
 
     /// Recursively replace all of the nested sub-attributes and sub-types using the
@@ -98,16 +100,18 @@ class SubElementInterfaceBase<string interfaceName, string attrOrType,
     /// Recursively replace all of the nested sub-attributes using the provided
     /// map function. Returns nullptr in the case of failure.
     }] # attrOrType # [{ replaceSubElements(
-      llvm::function_ref<mlir::Attribute(mlir::Attribute)> replaceAttrFn) {
+      llvm::function_ref<mlir::Attribute(mlir::Attribute)> replaceAttrFn,
+      bool recursively = true) {
       return replaceSubElements(
-        replaceAttrFn, [](mlir::Type type) { return type; });
+        replaceAttrFn, [](mlir::Type type) { return type; }, recursively);
     }
     /// Recursively replace all of the nested sub-types using the provided map
     /// function. Returns nullptr in the case of failure.
     }] # attrOrType # [{ replaceSubElements(
-      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn) {
+      llvm::function_ref<mlir::Type(mlir::Type)> replaceTypeFn,
+      bool recursively = true) {
       return replaceSubElements(
-        [](mlir::Attribute attr) { return attr; }, replaceTypeFn);
+        [](mlir::Attribute attr) { return attr; }, replaceTypeFn, recursively);
     }
   }];
 }

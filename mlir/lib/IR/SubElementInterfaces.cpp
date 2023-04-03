@@ -106,7 +106,8 @@ static void updateSubElementImpl(T element, function_ref<T(T)> walkFn,
                                  DenseMap<T, T> &visited,
                                  SmallVectorImpl<T> &newElements,
                                  FailureOr<bool> &changed,
-                                 ReplaceSubElementFnT &&replaceSubElementFn) {
+                                 ReplaceSubElementFnT &&replaceSubElementFn,
+                                 bool recursively) {
   // Bail early if we failed at any point.
   if (failed(changed))
     return;
@@ -128,7 +129,7 @@ static void updateSubElementImpl(T element, function_ref<T(T)> walkFn,
 
     // Handle replacing sub-elements if this element is also a container.
     if (auto interface = mappedElement.template dyn_cast<InterfaceT>()) {
-      if (!(mappedElement = replaceSubElementFn(interface))) {
+      if (recursively && !(mappedElement = replaceSubElementFn(interface))) {
         changed = failure();
         return;
       }
@@ -148,25 +149,26 @@ replaceSubElementsImpl(InterfaceT interface,
                        function_ref<Attribute(Attribute)> walkAttrsFn,
                        function_ref<Type(Type)> walkTypesFn,
                        DenseMap<Attribute, Attribute> &visitedAttrs,
-                       DenseMap<Type, Type> &visitedTypes) {
+                       DenseMap<Type, Type> &visitedTypes,
+                       bool recursively) {
   // Walk the current sub-elements, replacing them as necessary.
   SmallVector<Attribute, 16> newAttrs;
   SmallVector<Type, 16> newTypes;
   FailureOr<bool> changed = false;
   auto replaceSubElementFn = [&](auto subInterface) {
     return replaceSubElementsImpl(subInterface, walkAttrsFn, walkTypesFn,
-                                  visitedAttrs, visitedTypes);
+                                  visitedAttrs, visitedTypes, recursively);
   };
   interface.walkImmediateSubElements(
       [&](Attribute element) {
         updateSubElementImpl<SubElementAttrInterface>(
             element, walkAttrsFn, visitedAttrs, newAttrs, changed,
-            replaceSubElementFn);
+            replaceSubElementFn, recursively);
       },
       [&](Type element) {
         updateSubElementImpl<SubElementTypeInterface>(
             element, walkTypesFn, visitedTypes, newTypes, changed,
-            replaceSubElementFn);
+            replaceSubElementFn, recursively);
       });
   if (failed(changed))
     return {};
@@ -187,22 +189,24 @@ replaceSubElementsImpl(InterfaceT interface,
 
 Attribute SubElementAttrInterface::replaceSubElements(
     function_ref<Attribute(Attribute)> replaceAttrFn,
-    function_ref<Type(Type)> replaceTypeFn) {
+    function_ref<Type(Type)> replaceTypeFn,
+    bool recursively) {
   assert(replaceAttrFn && replaceTypeFn && "expected valid replace functions");
   DenseMap<Attribute, Attribute> visitedAttrs;
   DenseMap<Type, Type> visitedTypes;
   return replaceSubElementsImpl(*this, replaceAttrFn, replaceTypeFn,
-                                visitedAttrs, visitedTypes);
+                                visitedAttrs, visitedTypes, recursively);
 }
 
 Type SubElementTypeInterface::replaceSubElements(
     function_ref<Attribute(Attribute)> replaceAttrFn,
-    function_ref<Type(Type)> replaceTypeFn) {
+    function_ref<Type(Type)> replaceTypeFn,
+    bool recursively) {
   assert(replaceAttrFn && replaceTypeFn && "expected valid replace functions");
   DenseMap<Attribute, Attribute> visitedAttrs;
   DenseMap<Type, Type> visitedTypes;
   return replaceSubElementsImpl(*this, replaceAttrFn, replaceTypeFn,
-                                visitedAttrs, visitedTypes);
+                                visitedAttrs, visitedTypes, recursively);
 }
 
 //===----------------------------------------------------------------------===//
