@@ -114,6 +114,9 @@ public:
 
   /// Return the raw output stream used by this printer.
   virtual raw_ostream &getStream() const;
+  
+  /// Returns set of flags used to control the behavior printing proccess
+  virtual const OpPrintingFlags &getPrintingFlags() const;
 
   /// Print the given floating point value in a stabilized form that can be
   /// roundtripped through the IR. This is the companion to the 'parseFloat'

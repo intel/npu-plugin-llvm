@@ -1404,6 +1404,9 @@ public:
 
   /// Returns the output stream of the printer.
   raw_ostream &getStream() { return os; }
+  
+  /// Returns set of flags used to control the behavior printing proccess
+  OpPrintingFlags &getPrintingFlags() { return printerFlags; }
 
   template <typename Container, typename UnaryFunctor>
   inline void interleaveComma(const Container &c, UnaryFunctor eachFn) const {
@@ -2285,6 +2288,11 @@ AsmPrinter::~AsmPrinter() = default;
 raw_ostream &AsmPrinter::getStream() const {
   assert(impl && "expected AsmPrinter::getStream to be overriden");
   return impl->getStream();
+}
+
+const OpPrintingFlags &AsmPrinter::getPrintingFlags() const {
+  assert(impl && "expected AsmPrinter::getPrintingFlags to be overriden");
+  return impl->getPrintingFlags();
 }
 
 /// Print the given floating point value in a stablized form.
