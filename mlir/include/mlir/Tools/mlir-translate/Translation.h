@@ -57,6 +57,10 @@ using TranslateFunction = std::function<LogicalResult(
     llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output,
     llvm::StringRef outputFileName, MLIRContext *)>;
 
+/// Interface of the function that adds all dialects and dialect extensions used
+/// for the translation to the given DialectRegistry.
+using DialectRegistrationFunction = std::function<void(DialectRegistry &)>;
+
 /// Use Translate[ToMLIR|FromMLIR]Registration as an initializer that
 /// registers a function and associates it with name. This requires that a
 /// translation has not been registered to a given name.
@@ -73,15 +77,19 @@ using TranslateFunction = std::function<LogicalResult(
 /// \{
 struct TranslateToMLIRRegistration {
   TranslateToMLIRRegistration(llvm::StringRef name,
-                              const TranslateSourceMgrToMLIRFunction &function);
+                              const TranslateSourceMgrToMLIRFunction &function,
+                              const DialectRegistrationFunction &dialectRegistration =
+                                  [](DialectRegistry &) {});
   TranslateToMLIRRegistration(llvm::StringRef name,
-                              const TranslateStringRefToMLIRFunction &function);
+                              const TranslateStringRefToMLIRFunction &function,
+                              const DialectRegistrationFunction &dialectRegistration =
+                                  [](DialectRegistry &) {});
 };
 
 struct TranslateFromMLIRRegistration {
   TranslateFromMLIRRegistration(
       llvm::StringRef name, const TranslateFromMLIRFunction &function,
-      const std::function<void(DialectRegistry &)> &dialectRegistration =
+      const DialectRegistrationFunction &dialectRegistration =
           [](DialectRegistry &) {});
 };
 struct TranslateRegistration {

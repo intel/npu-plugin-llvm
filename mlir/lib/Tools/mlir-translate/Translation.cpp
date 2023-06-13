@@ -55,9 +55,13 @@ TranslateRegistration::TranslateRegistration(
 // Puts `function` into the to-MLIR translation registry unless there is already
 // a function registered for the same name.
 static void registerTranslateToMLIRFunction(
-    StringRef name, const TranslateSourceMgrToMLIRFunction &function) {
-  auto wrappedFn = [function](llvm::SourceMgr &sourceMgr, raw_ostream &output,
+    StringRef name, const TranslateSourceMgrToMLIRFunction &function,
+    const DialectRegistrationFunction &dialectRegistration) {
+  auto wrappedFn = [function, dialectRegistration](llvm::SourceMgr &sourceMgr, raw_ostream &output,
                               StringRef, MLIRContext *context) {
+    DialectRegistry registry;
+    dialectRegistration(registry);
+    context->appendDialectRegistry(registry);
     OwningOpRef<ModuleOp> module = function(sourceMgr, context);
     if (!module || failed(verify(*module)))
       return failure();
@@ -68,20 +72,22 @@ static void registerTranslateToMLIRFunction(
 }
 
 TranslateToMLIRRegistration::TranslateToMLIRRegistration(
-    StringRef name, const TranslateSourceMgrToMLIRFunction &function) {
-  registerTranslateToMLIRFunction(name, function);
+    StringRef name, const TranslateSourceMgrToMLIRFunction &function,
+    const DialectRegistrationFunction &dialectRegistration) {
+  registerTranslateToMLIRFunction(name, function, dialectRegistration);
 }
 
 /// Wraps `function` with a lambda that extracts a StringRef from a source
 /// manager and registers the wrapper lambda as a to-MLIR conversion.
 TranslateToMLIRRegistration::TranslateToMLIRRegistration(
-    StringRef name, const TranslateStringRefToMLIRFunction &function) {
+    StringRef name, const TranslateStringRefToMLIRFunction &function,
+    const DialectRegistrationFunction &dialectRegistration) {
   registerTranslateToMLIRFunction(
       name, [function](llvm::SourceMgr &sourceMgr, MLIRContext *ctx) {
         const llvm::MemoryBuffer *buffer =
             sourceMgr.getMemoryBuffer(sourceMgr.getMainFileID());
         return function(buffer->getBuffer(), ctx);
-      });
+      }, dialectRegistration);
 }
 
 //===----------------------------------------------------------------------===//
