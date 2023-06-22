@@ -376,6 +376,7 @@ public:
 
   /// Replace all of the uses of the given symbol with `newSymbolName`.
   void replaceAllUsesWith(Operation *symbol, StringAttr newSymbolName);
+  void replaceAllUsesWith(Operation *symbol, SymbolRefAttr newSymbolName);
 
 private:
   /// A reference to the symbol table used to construct this map.
