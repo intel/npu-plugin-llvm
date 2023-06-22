@@ -118,7 +118,7 @@ walkSymbolTable(Operation *op,
 /// Build a symbol table with the symbols within the given operation.
 SymbolTable::SymbolTable(Operation *symbolTableOp)
     : symbolTableOp(symbolTableOp) {
-  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>() &&
+  assert((symbolTableOp->hasTrait<OpTrait::SymbolTable>() || symbolTableOp->hasTrait<OpTrait::SymbolContainer>()) &&
          "expected operation to have SymbolTable trait");
   assert(symbolTableOp->getNumRegions() == 1 &&
          "expected operation to have a single region");
@@ -1098,7 +1098,7 @@ SymbolUserMap::SymbolUserMap(SymbolTableCollection &symbolTable,
 }
 
 void SymbolUserMap::replaceAllUsesWith(Operation *symbol,
-                                       StringAttr newSymbolName) {
+                                       SymbolRefAttr newSymbolName) {
   auto it = symbolToUsers.find(symbol);
   if (it == symbolToUsers.end())
     return;
@@ -1123,6 +1123,11 @@ void SymbolUserMap::replaceAllUsesWith(Operation *symbol,
       newIt.first->second.set_union(oldIt->second);
     symbolToUsers.erase(oldIt);
   }
+}
+
+void SymbolUserMap::replaceAllUsesWith(Operation *symbol,
+                                        StringAttr newSymbolName) {
+    replaceAllUsesWith(symbol, mlir::FlatSymbolRefAttr::get(newSymbolName));
 }
 
 //===----------------------------------------------------------------------===//
