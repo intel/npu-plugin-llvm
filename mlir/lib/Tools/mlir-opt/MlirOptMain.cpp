@@ -191,7 +191,8 @@ LogicalResult mlir::MlirOptMain(raw_ostream &outputStream,
 
 LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                                 DialectRegistry &registry,
-                                bool preloadDialectsInContext) {
+                                bool preloadDialectsInContext,
+                                const AdditionalRegistrationFn &additionalRegistration) {
   static cl::opt<std::string> inputFilename(
       cl::Positional, cl::desc("<input file>"), cl::init("-"));
 
@@ -232,7 +233,6 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
   registerPassManagerCLOptions();
   registerDefaultTimingManagerCLOptions();
   DebugCounter::registerCLOptions();
-  PassPipelineCLParser passPipeline("", "Compiler passes to run");
 
   // Build the list of dialects as a header for the --help message.
   std::string helpHeader = (toolName + "\nAvailable Dialects: ").str();
@@ -241,6 +241,13 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
     interleaveComma(registry.getDialectNames(), os,
                     [&](auto name) { os << name; });
   }
+
+  // It is not possible to place a call after command line parser 
+  // since not all options are registered at the moment
+  additionalRegistration(helpHeader);
+
+  PassPipelineCLParser passPipeline("", "Compiler passes to run");
+
   // Parse pass names in main to ensure static initialization completed.
   cl::ParseCommandLineOptions(argc, argv, helpHeader);
 

@@ -16,6 +16,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/StringRef.h"
 
+#include <functional>
 #include <cstdlib>
 #include <memory>
 
@@ -28,6 +29,12 @@ namespace mlir {
 class DialectRegistry;
 class PassPipelineCLParser;
 class PassManager;
+
+
+/// VPUX-specific method to get value for arch kind from command line 
+/// and register HW-specific passes and pipelines
+using AdditionalRegistrationFn = 
+      std::function<void(StringRef helpHeader)>;
 
 /// This defines the function type used to setup the pass manager. This can be
 /// used to pass in a callback to setup a default pass pipeline to be applied on
@@ -75,9 +82,14 @@ LogicalResult MlirOptMain(llvm::raw_ostream &outputStream,
 /// - preloadDialectsInContext will trigger the upfront loading of all
 ///   dialects from the global registry in the MLIRContext. This option is
 ///   deprecated and will be removed soon.
+/// - additionalRegistration will be called before the main command line parsing 
+///   to perform additional registrations 
+
 LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                           DialectRegistry &registry,
-                          bool preloadDialectsInContext = false);
+                          bool preloadDialectsInContext = false,
+                          const AdditionalRegistrationFn &additionalRegistration 
+                                  = [](StringRef){});
 
 /// Helper wrapper to return the result of MlirOptMain directly from main.
 ///
