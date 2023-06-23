@@ -224,6 +224,11 @@ protected:
   bool verifyRoundtripFlag = false;
 };
 
+/// VPUX-specific method to get value for arch kind from command line
+/// and register HW-specific passes and pipelines
+using AdditionalRegistrationFn =
+      std::function<void(llvm::StringRef helpHeader)>;
+
 /// This defines the function type used to setup the pass manager. This can be
 /// used to pass in a callback to setup a default pass pipeline to be applied on
 /// the loaded IR.
@@ -242,8 +247,12 @@ LogicalResult MlirOptMain(llvm::raw_ostream &outputStream,
 /// Implementation for tools like `mlir-opt`.
 /// - toolName is used for the header displayed by `--help`.
 /// - registry should contain all the dialects that can be parsed in the source.
+/// - additionalRegistration will be called before the main command line parsing
+///   to perform additional registrations.
 LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
-                          DialectRegistry &registry);
+                          DialectRegistry &registry,
+                          const AdditionalRegistrationFn &additionalRegistration
+                                  = [](llvm::StringRef){});
 
 /// Helper wrapper to return the result of MlirOptMain directly from main.
 ///

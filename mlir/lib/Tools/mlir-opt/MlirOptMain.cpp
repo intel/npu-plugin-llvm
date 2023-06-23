@@ -478,7 +478,8 @@ LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
 }
 
 LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
-                                DialectRegistry &registry) {
+                                DialectRegistry &registry,
+                                const AdditionalRegistrationFn &additionalRegistration) {
   static cl::opt<std::string> inputFilename(
       cl::Positional, cl::desc("<input file>"), cl::init("-"));
 
@@ -489,7 +490,6 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
   InitLLVM y(argc, argv);
 
   // Register any command line options.
-  MlirOptMainConfig::registerCLOptions(registry);
   registerAsmPrinterCLOptions();
   registerMLIRContextCLOptions();
   registerPassManagerCLOptions();
@@ -503,6 +503,13 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
     interleaveComma(registry.getDialectNames(), os,
                     [&](auto name) { os << name; });
   }
+
+  // It is not possible to place a call after command line parser
+  // since not all options are registered at the moment
+  additionalRegistration(helpHeader);
+
+  MlirOptMainConfig::registerCLOptions(registry);
+
   // Parse pass names in main to ensure static initialization completed.
   cl::ParseCommandLineOptions(argc, argv, helpHeader);
   MlirOptMainConfig config = MlirOptMainConfig::createFromCLOptions();
