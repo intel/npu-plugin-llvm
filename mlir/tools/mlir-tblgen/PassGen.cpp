@@ -187,6 +187,7 @@ public:
     {1}::operator=(other);
     return *this;
   }
+  ~{0}Base() {{}
 
   /// Returns the command-line argument attached to this pass.
   static constexpr ::llvm::StringLiteral getArgumentName() {
