@@ -448,7 +448,7 @@ LogicalResult GPUPrintfOpToVPrintfLowering::matchAndRewrite(
   for (auto [index, arg] : llvm::enumerate(args)) {
     Value ptr = rewriter.create<LLVM::GEPOp>(
         loc, LLVM::LLVMPointerType::get(arg.getType()), tempAlloc,
-        ArrayRef<LLVM::GEPArg>{0, index});
+        ArrayRef<LLVM::GEPArg>{0, static_cast<int32_t>(index)});
     rewriter.create<LLVM::StoreOp>(loc, arg, ptr);
   }
   tempAlloc = rewriter.create<LLVM::BitcastOp>(loc, i8Ptr, tempAlloc);
