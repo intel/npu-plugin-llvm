@@ -1082,11 +1082,11 @@ Value ConvertLaunchFuncOpToGpuRuntimeCallPattern::generateParamsArray(
   for (const auto &en : llvm::enumerate(arguments)) {
     Value fieldPtr = builder.create<LLVM::GEPOp>(
         loc, getTypeConverter()->getPointerType(argumentTypes[en.index()]),
-        structType, structPtr, ArrayRef<LLVM::GEPArg>{0, en.index()});
+        structType, structPtr, ArrayRef<LLVM::GEPArg>{0, static_cast<int32_t>(en.index())});
     builder.create<LLVM::StoreOp>(loc, en.value(), fieldPtr);
     auto elementPtr = builder.create<LLVM::GEPOp>(
         loc, llvmPointerPointerType, llvmPointerType, arrayPtr,
-        ArrayRef<LLVM::GEPArg>{en.index()});
+        ArrayRef<LLVM::GEPArg>{static_cast<int32_t>(en.index())});
     if (!getTypeConverter()->useOpaquePointers())
       fieldPtr =
           builder.create<LLVM::BitcastOp>(loc, llvmPointerType, fieldPtr);
