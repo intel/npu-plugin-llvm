@@ -1109,6 +1109,8 @@ public:
   /// elements.
   OpPrintingFlags &elideLargeElementsAttrs(int64_t largeElementLimit = 16);
 
+  OpPrintingFlags &setAllowPrintingElementsAttrAsHex(bool allowHex = true);
+
   /// Enable or disable printing of debug information (based on `enable`). If
   /// 'prettyForm' is set to true, debug information is printed in a more
   /// readable 'pretty' form. Note: The IR generated with 'prettyForm' is not
@@ -1135,6 +1137,8 @@ public:
 
   /// Return if the given ElementsAttr should be elided.
   bool shouldElideElementsAttr(ElementsAttr attr) const;
+
+  bool allowPrintingElementsAttrAsHex() const;
 
   /// Return the size limit for printing large ElementsAttr.
   std::optional<int64_t> getLargeElementsAttrLimit() const;
@@ -1164,6 +1168,10 @@ private:
   /// Elide large elements attributes if the number of elements is larger than
   /// the upper limit.
   std::optional<int64_t> elementsAttrElementLimit;
+
+  // Allow printing DenseElementsAttrs with a hex string when the number of
+  // elements is large
+  bool allowPrintingHex : 1;
 
   /// Print debug information.
   bool printDebugInfoFlag : 1;
