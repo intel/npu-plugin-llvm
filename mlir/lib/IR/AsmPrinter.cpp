@@ -182,7 +182,8 @@ void mlir::registerAsmPrinterCLOptions() {
 
 /// Initialize the printing flags with default supplied by the cl::opts above.
 OpPrintingFlags::OpPrintingFlags()
-    : printDebugInfoFlag(false), printDebugInfoPrettyFormFlag(false),
+    : allowPrintingHex(true),
+      printDebugInfoFlag(false), printDebugInfoPrettyFormFlag(false),
       printGenericOpFormFlag(false), skipRegionsFlag(false),
       assumeVerifiedFlag(false), printLocalScope(false),
       printValueUsersFlag(false) {
@@ -191,6 +192,10 @@ OpPrintingFlags::OpPrintingFlags()
     return;
   if (clOptions->elideElementsAttrIfLarger.getNumOccurrences())
     elementsAttrElementLimit = clOptions->elideElementsAttrIfLarger;
+  if (clOptions->printElementsAttrWithHexIfLarger.getNumOccurrences()) {
+    allowPrintingHex =
+        clOptions->printElementsAttrWithHexIfLarger.getValue() != -1;
+  }
   printDebugInfoFlag = clOptions->printDebugInfoOpt;
   printDebugInfoPrettyFormFlag = clOptions->printPrettyDebugInfoOpt;
   printGenericOpFormFlag = clOptions->printGenericOpFormOpt;
@@ -206,6 +211,12 @@ OpPrintingFlags::OpPrintingFlags()
 OpPrintingFlags &
 OpPrintingFlags::elideLargeElementsAttrs(int64_t largeElementLimit) {
   elementsAttrElementLimit = largeElementLimit;
+  return *this;
+}
+
+OpPrintingFlags &
+OpPrintingFlags::setAllowPrintingElementsAttrAsHex(bool allowHex) {
+  allowPrintingHex = allowHex;
   return *this;
 }
 
@@ -255,6 +266,10 @@ bool OpPrintingFlags::shouldElideElementsAttr(ElementsAttr attr) const {
   return elementsAttrElementLimit &&
          *elementsAttrElementLimit < int64_t(attr.getNumElements()) &&
          !llvm::isa<SplatElementsAttr>(attr);
+}
+
+bool OpPrintingFlags::allowPrintingElementsAttrAsHex() const {
+  return allowPrintingHex;
 }
 
 /// Return the size limit for printing large ElementsAttr.
@@ -2227,7 +2242,9 @@ void AsmPrinter::Impl::printAttributeImpl(Attribute attr,
       printElidedElementsAttr(os);
     } else {
       os << "dense<";
-      printDenseIntOrFPElementsAttr(intOrFpEltAttr, /*allowHex=*/true);
+      printDenseIntOrFPElementsAttr(
+          intOrFpEltAttr,
+          /*allowHex=*/printerFlags.allowPrintingElementsAttrAsHex());
       os << '>';
     }
 
@@ -2248,9 +2265,13 @@ void AsmPrinter::Impl::printAttributeImpl(Attribute attr,
       os << "sparse<";
       DenseIntElementsAttr indices = sparseEltAttr.getIndices();
       if (indices.getNumElements() != 0) {
-        printDenseIntOrFPElementsAttr(indices, /*allowHex=*/false);
+        printDenseIntOrFPElementsAttr(
+            indices,
+            /*allowHex=*/printerFlags.allowPrintingElementsAttrAsHex());
         os << ", ";
-        printDenseElementsAttr(sparseEltAttr.getValues(), /*allowHex=*/true);
+        printDenseElementsAttr(
+            sparseEltAttr.getValues(),
+            /*allowHex=*/printerFlags.allowPrintingElementsAttrAsHex());
       }
       os << '>';
     }
