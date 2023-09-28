@@ -385,6 +385,11 @@ public:
 
   {0}Base() : {1}(::mlir::TypeID::get<DerivedT>()) {{}
   {0}Base(const {0}Base &other) : {1}(other) {{}
+  {0}Base& operator=(const {0}Base &other) {
+    {1}::operator=(other);
+    return *this;
+  }
+  ~{0}Base() {{}
 
   /// Returns the command-line argument attached to this pass.
   static constexpr ::llvm::StringLiteral getArgumentName() {
