@@ -152,9 +152,9 @@ def Linalg_SoftmaxOp : Linalg_Op<"softmax",
     std::pair<int64_t, int64_t> getDpsInitsPositionRange() {
       std::pair<unsigned, unsigned> outputsIndexAndLength =
         getODSOperandIndexAndLength(1);
-      return std::make_pair<int64_t, int64_t>(
-          outputsIndexAndLength.first,
-          outputsIndexAndLength.first + outputsIndexAndLength.second);
+      const auto index = static_cast<int64_t>(outputsIndexAndLength.first);
+      const auto length = static_cast<int64_t>(outputsIndexAndLength.second);
+      return std::make_pair(index, index + length);
     }
   }];
   let hasVerifier = 1;
