@@ -29,6 +29,7 @@ add_mlir_dialect_library(MLIRLLVMDialect
   Core
 
   LINK_LIBS PUBLIC
+  MLIRTransformUtils
   MLIRCallInterfaces
   MLIRControlFlowInterfaces
   MLIRDataLayoutInterfaces
