@@ -581,7 +581,8 @@ static LogicalResult inlineCallsInSCC(Inliner &inliner, CGUseList &useList,
     useList.mergeUsesAfterInlining(it.targetNode, it.sourceNode);
 
     // then erase the call.
-    call.erase();
+    const auto *callInterface = inliner.getInterfaceFor(call->getDialect());
+    callInterface->eraseCall(call);
 
     // If we inlined in place, mark the node for deletion.
     if (inlineInPlace) {
