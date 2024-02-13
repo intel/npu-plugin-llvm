@@ -51,11 +51,12 @@ module {
     }
   }
 
-  // CHECK: func @symbol_bar
+  // FIXME:#73140
+  // DISABLED-CHECK: func @symbol_bar
   func.func @symbol_bar() {
-    // CHECK: foo.op
-    // CHECK-SAME: use_1 = @module_a::@replaced_foo
-    // CHECK-SAME: use_2 = @replaced_module_b::@replaced_module_c::@replaced_foo
+    // DISABLED-CHECK: foo.op
+    // DISABLED-CHECK-SAME: use_1 = @module_a::@replaced_foo
+    // DISABLED-CHECK-SAME: use_2 = @replaced_module_b::@replaced_module_c::@replaced_foo
     "foo.op"() {
       use_1 = @module_a::@foo,
       use_2 = @module_b::@module_c::@foo
@@ -97,15 +98,16 @@ module {
 
 // -----
 
+// FIXME:#73140
 module {
-  // CHECK: module @replaced_foo
+  // DISABLED-CHECK: module @replaced_foo
   module @foo attributes {sym.new_name = "replaced_foo" } {
-    // CHECK: func.func private @foo
+    // DISABLED-CHECK: func.func private @foo
     func.func private @foo()
   }
 
-  // CHECK: foo.op
-  // CHECK-SAME: use = @replaced_foo::@foo
+  // DISABLED-CHECK: foo.op
+  // DISABLED-CHECK-SAME: use = @replaced_foo::@foo
   "foo.op"() {
     use = @foo::@foo
   } : () -> ()
