@@ -384,8 +384,8 @@ def Builtin_Integer : Builtin_Type<"Integer"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_MemRef : Builtin_Type<"MemRef", [
-    ShapedTypeInterface
-  ], "BaseMemRefType"> {
+    BaseMemRefTypeInterface
+  ]> {
   let summary = "Shaped reference to a region of memory";
   let description = [{
     Syntax:
@@ -636,7 +636,7 @@ def Builtin_MemRef : Builtin_Type<"MemRef", [
       "unsigned":$memorySpaceInd)>
   ];
   let extraClassDeclaration = [{
-    using BaseMemRefType::clone;
+    using ShapedType::Trait<MemRefType>::clone;
     using ShapedType::Trait<MemRefType>::getElementTypeBitWidth;
     using ShapedType::Trait<MemRefType>::getRank;
     using ShapedType::Trait<MemRefType>::getNumElements;
@@ -654,6 +654,13 @@ def Builtin_MemRef : Builtin_Type<"MemRef", [
     /// New `Attribute getMemorySpace()` method should be used instead.
     unsigned getMemorySpaceAsInt() const;
 
+    /// Returns if this type is ranked (always true).
+    bool hasRank() const { return true; }
+
+    ///   Returns a clone of this type with the given shape and element
+    ///   type. If a shape is not provided, the current shape of the type is used.
+    MemRefType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                    Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -719,8 +726,8 @@ def Builtin_Opaque : Builtin_Type<"Opaque"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_RankedTensor : Builtin_Type<"RankedTensor", [
-    ShapedTypeInterface
-  ], "TensorType"> {
+    TensorTypeInterface
+  ]> {
   let summary = "Multi-dimensional array with a fixed number of dimensions";
   let description = [{
     Syntax:
@@ -801,7 +808,7 @@ def Builtin_RankedTensor : Builtin_Type<"RankedTensor", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using TensorType::clone;
+    using ShapedType::Trait<RankedTensorType>::clone;
     using ShapedType::Trait<RankedTensorType>::getElementTypeBitWidth;
     using ShapedType::Trait<RankedTensorType>::getRank;
     using ShapedType::Trait<RankedTensorType>::getNumElements;
@@ -815,11 +822,12 @@ def Builtin_RankedTensor : Builtin_Type<"RankedTensor", [
     /// Arguments that are passed into the builder must outlive the builder.
     class Builder;
 
-    /// Return a clone of this type with the given new element type and the same
-    /// shape as this type.
-    RankedTensorType clone(::mlir::Type elementType) {
-      return ::llvm::cast<RankedTensorType>(cloneWith(getShape(), elementType));
-    }
+    /// Returns if this type is ranked (always true).
+    bool hasRank() const { return true; }
+
+    ///   Returns a clone of this type with the given shape and element type.
+    RankedTensorType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                              Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -897,8 +905,8 @@ def Builtin_Tuple : Builtin_Type<"Tuple"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", [
-    ShapedTypeInterface
-  ], "BaseMemRefType"> {
+    BaseMemRefTypeInterface
+  ]> {
   let summary = "Shaped reference, with unknown rank, to a region of memory";
   let description = [{
     Syntax:
@@ -944,7 +952,7 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using BaseMemRefType::clone;
+    using ShapedType::Trait<UnrankedMemRefType>::clone;
     using ShapedType::Trait<UnrankedMemRefType>::getElementTypeBitWidth;
     using ShapedType::Trait<UnrankedMemRefType>::getRank;
     using ShapedType::Trait<UnrankedMemRefType>::getNumElements;
@@ -960,11 +968,12 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", [
     /// New `Attribute getMemorySpace()` method should be used instead.
     unsigned getMemorySpaceAsInt() const;
 
-    /// Return a clone of this type with the given new element type and the same
-    /// shape as this type.
-    MemRefType clone(::mlir::Type elementType) {
-      return ::llvm::cast<MemRefType>(cloneWith(getShape(), elementType));
-    }
+    /// Returns if this type is ranked (always false).
+    bool hasRank() const { return false; }
+
+    ///   Returns a clone of this type with the given shape and element type.
+    BaseMemRefType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -975,8 +984,8 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", [
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", [
-    ShapedTypeInterface
-  ], "TensorType"> {
+    TensorTypeInterface
+  ]> {
   let summary = "Multi-dimensional array with unknown dimensions";
   let description = [{
     Syntax:
@@ -1003,7 +1012,7 @@ def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using TensorType::clone;
+    using ShapedType::Trait<UnrankedTensorType>::clone;
     using ShapedType::Trait<UnrankedTensorType>::getElementTypeBitWidth;
     using ShapedType::Trait<UnrankedTensorType>::getRank;
     using ShapedType::Trait<UnrankedTensorType>::getNumElements;
@@ -1014,6 +1023,13 @@ def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", [
     using ShapedType::Trait<UnrankedTensorType>::getDynamicDimIndex;
 
     ArrayRef<int64_t> getShape() const { return std::nullopt; }
+
+    /// Returns if this type is ranked (always false).
+    bool hasRank() const { return false; }
+
+    /// Returns a clone of this type with the given shape and element type.
+    TensorType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
