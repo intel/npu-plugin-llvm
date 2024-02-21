@@ -323,5 +323,11 @@ def Test_IteratorTypeArrayAttr
     : TypedArrayAttrBase<Test_IteratorTypeEnum,
   "Iterator type should be an enum.">;
 
+def TestAttrNewlineAndIndent : Test_Attr<"TestAttrNewlineAndIndent"> {
+  let mnemonic = "newline_and_indent";
+  let parameters = (ins "::mlir::Type":$indentType);
+  let hasCustomAssemblyFormat = 1;
+}
+
 
 #endif // TEST_ATTRDEFS
