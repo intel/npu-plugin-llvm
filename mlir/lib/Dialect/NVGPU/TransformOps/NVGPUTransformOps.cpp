@@ -153,7 +153,7 @@ DiagnosedSilenceableFailure transform::CreateAsyncGroupsOp::applyToOne(
 
 /// Returns true if the given type has the default memory space.
 static bool hasDefaultMemorySpace(BaseMemRefType type) {
-  return !type.getMemorySpace() || type.getMemorySpaceAsInt() == 0;
+  return !type.getMemorySpace();
 }
 
 /// Returns true if the given type has the shared (workgroup) memory space.

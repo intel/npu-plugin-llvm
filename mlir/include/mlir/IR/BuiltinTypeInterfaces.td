@@ -104,24 +104,20 @@ def ShapedTypeInterface : TypeInterface<"ShapedType"> {
 
     /// Return the number of elements present in the given shape.
     static int64_t getNumElements(ArrayRef<int64_t> shape);
-
-    /// Return a clone of this type with the given new shape and element type.
-    /// The returned type is ranked, even if this type is unranked.
-    auto clone(::llvm::ArrayRef<int64_t> shape, Type elementType) {
-      return cloneWith(shape, elementType);
-    }
-
-    /// Return a clone of this type with the given new shape. The returned type
-    /// is ranked, even if this type is unranked.
-    auto clone(::llvm::ArrayRef<int64_t> shape) {
-      return cloneWith(shape, getElementType());
-    }
   }];
 
   let extraSharedClassDeclaration = [{
-    /// Return a clone of this type with the given new element type. The
-    /// returned type is ranked if and only if this type is ranked. In that
-    /// case, the returned type has the same shape as this type.
+    /// Return a clone of this type with the given new shape and element type.
+    auto clone(::llvm::ArrayRef<int64_t> shape, Type elementType) {
+      return $_type.cloneWith(shape, elementType);
+    }
+
+    /// Return a clone of this type with the given new shape.
+    auto clone(::llvm::ArrayRef<int64_t> shape) {
+      return $_type.cloneWith(shape, $_type.getElementType());
+    }
+
+    /// Return a clone of this type with the given new element type.
     auto clone(::mlir::Type elementType) {
       return $_type.cloneWith(/*shape=*/std::nullopt, elementType);
     }
@@ -185,6 +181,68 @@ def ShapedTypeInterface : TypeInterface<"ShapedType"> {
       return llvm::count_if($_type.getShape().take_front(index),
                             ::mlir::ShapedType::isDynamic);
     }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// TensorTypeInterface
+//===----------------------------------------------------------------------===//
+
+def TensorTypeInterface : TypeInterface<"TensorType", [
+      ShapedTypeInterface
+    ]
+  > {
+  let cppNamespace = "::mlir";
+  let description = [{
+    This interface provides a shared interface for ranked and unranked type
+    and customized tensor types.
+
+    This class attaches the ShapedTypeInterface to act as a mixin to
+    provide many useful utility functions.
+  }];
+
+  let extraClassDeclaration = [{
+    // Return true if the specified element type is ok in a tensor.
+    static bool isValidElementType(::mlir::Type type);
+  }];
+
+  let extraClassOf = [{
+    return $_type.hasTrait<::mlir::TensorType::Trait>();
+  }];
+
+}
+
+//===----------------------------------------------------------------------===//
+// BaseMemRefTypeInterface
+//===----------------------------------------------------------------------===//
+
+def BaseMemRefTypeInterface : TypeInterface<"BaseMemRefType", [
+      ShapedTypeInterface
+    ]
+  > {
+  let cppNamespace = "::mlir";
+  let description = [{
+    This interface provides a shared interface for ranked and unranked memref and
+    customized memref types.
+
+    This interface attaches the ShapedTypeInterface to act as a mixin to
+    provide many useful utility functions.
+  }];
+
+  let methods = [
+    InterfaceMethod<[{
+      Returns the memory space in which data referred to by this memref resides.
+    }],
+    "::mlir::Attribute", "getMemorySpace">,
+  ];
+
+  let extraClassDeclaration = [{
+    // Return true if the specified element type is ok in a memref.
+    static bool isValidElementType(::mlir::Type type);
+  }];
+
+  let extraClassOf = [{
+    return $_type.hasTrait<::mlir::BaseMemRefType::Trait>();
   }];
 }
 

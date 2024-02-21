@@ -14,6 +14,7 @@
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Matchers.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include <optional>
 
 using namespace mlir;
