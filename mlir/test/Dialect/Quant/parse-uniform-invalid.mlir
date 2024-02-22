@@ -37,12 +37,12 @@
 
 // -----
 // Unrecognized storage type: illegal prefix
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<int8<-4:3>:f32, 0.99872:127>
 
 // -----
 // Unrecognized storage type: no width
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -52,7 +52,7 @@
 
 // -----
 // Unrecognized storage type: storage size < 0
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i-1<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -79,6 +79,26 @@
 // Illegal storage min/max: min < defaultMin
 // expected-error@+1 {{illegal storage type minimum: -9}}
 !qalias = !quant.uniform<i4<-9:1>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 60000}}
+!qalias = !quant.uniform<f8E5M2<-57344:60000>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -60000}}
+!qalias = !quant.uniform<f8E5M2<-60000:57344>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 500}}
+!qalias = !quant.uniform<f8E4M3FN<-448:500>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -500}}
+!qalias = !quant.uniform<f8E4M3FN<-500:448>:f32, 0.99872:127>
 
 // -----
 // Illegal uniform params: invalid scale

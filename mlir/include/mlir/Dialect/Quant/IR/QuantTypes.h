@@ -82,6 +82,18 @@ public:
     return llvm::maxUIntN(integralWidth);
   }
 
+  static constexpr int64_t getDefaultMaximumForF8E4M3FN() { return 448; }
+
+  static constexpr int64_t getDefaultMinimumForF8E4M3FN() {
+    return -getDefaultMaximumForF8E4M3FN();
+  }
+
+  static constexpr int64_t getDefaultMaximumForF8E5M2() { return 57344; }
+
+  static constexpr int64_t getDefaultMinimumForF8E5M2() {
+    return -getDefaultMaximumForF8E5M2();
+  }
+
   /// Gets the original expressed type that this quantized type approximates.
   /// Note that this presumes that the quantized type was always derived from
   /// a floating point type, which in the broadest definition, is not true (i.e.
