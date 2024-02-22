@@ -32,28 +32,38 @@ LogicalResult
 QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
                       unsigned flags, Type storageType, Type expressedType,
                       int64_t storageTypeMin, int64_t storageTypeMax) {
-  // Verify that the storage type is integral.
-  // This restriction may be lifted at some point in favor of using bf16
-  // or f16 as exact representations on hardware where that is advantageous.
-  auto intStorageType = llvm::dyn_cast<IntegerType>(storageType);
-  if (!intStorageType)
-    return emitError() << "storage type must be integral";
-  unsigned integralWidth = intStorageType.getWidth();
 
-  // Verify storage width.
-  if (integralWidth == 0 || integralWidth > MaxStorageBits)
-    return emitError() << "illegal storage type size: " << integralWidth;
-
-  // Verify storageTypeMin and storageTypeMax.
   bool isSigned =
       (flags & QuantizationFlags::Signed) == QuantizationFlags::Signed;
-  int64_t defaultIntegerMin =
-      getDefaultMinimumForInteger(isSigned, integralWidth);
-  int64_t defaultIntegerMax =
-      getDefaultMaximumForInteger(isSigned, integralWidth);
-  if (storageTypeMax - storageTypeMin <= 0 ||
-      storageTypeMin < defaultIntegerMin ||
-      storageTypeMax > defaultIntegerMax) {
+
+  // Integral storage type width checks
+  if (storageType.isa<IntegerType>()) {
+    unsigned integralWidth =
+        llvm::dyn_cast<IntegerType>(storageType).getWidth();
+
+    if (integralWidth == 0 || integralWidth > MaxStorageBits)
+      return emitError() << "illegal storage type size: " << integralWidth;
+  }
+
+  int64_t defaultMin, defaultMax;
+  if (storageType.isa<IntegerType>()) {
+    const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+    defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
+    defaultMax = QuantizedType::getDefaultMaximumForInteger(isSigned, width);
+  } else if (storageType.isa<Float8E5M2Type>()) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E5M2();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E5M2();
+  } else if (storageType.isa<Float8E4M3FNType>()) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E4M3FN();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E4M3FN();
+  } else {
+    return emitError() << "illegal storage type, supported types are: integral "
+                          "types, Float8E4M3FNType and Float8E5M2Type ";
+  }
+
+  // Verify storageTypeMin and storageTypeMax.
+  if (storageTypeMax - storageTypeMin <= 0 || storageTypeMin < defaultMin ||
+      storageTypeMax > defaultMax) {
     return emitError() << "illegal storage min and storage max: ("
                        << storageTypeMin << ":" << storageTypeMax << ")";
   }

@@ -17,12 +17,12 @@
 
 // -----
 // Unrecognized storage type: illegal prefix
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.any<int8<-4:3>:f32>
 
 // -----
 // Unrecognized storage type: no width
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.any<i<-4:3>:f32>
 
 // -----
