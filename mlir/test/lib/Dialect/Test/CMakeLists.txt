@@ -43,6 +43,10 @@ add_public_tablegen_target(MLIRTestOpsSyntaxIncGen)
 
 add_sharded_ops(TestOps 20)
 
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+mlir_tablegen(Passes.h.inc -gen-pass-decls -name Test)
+add_public_tablegen_target(MLIRTestPassIncGen)
+
 # Exclude tests from libMLIR.so
 add_mlir_library(MLIRTestDialect
   TestAttributes.cpp
@@ -57,6 +61,7 @@ add_mlir_library(MLIRTestDialect
   TestOpsSyntax.cpp
   TestDialectInterfaces.cpp
   ${SHARDED_SRCS}
+  Passes.cpp
 
   EXCLUDE_FROM_LIBMLIR
 
@@ -68,6 +73,7 @@ add_mlir_library(MLIRTestDialect
   MLIRTestOpsIncGen
   MLIRTestOpsSyntaxIncGen
   MLIRTestOpsShardGen
+  MLIRTestPassIncGen
 
   LINK_LIBS PUBLIC
   MLIRControlFlowInterfaces

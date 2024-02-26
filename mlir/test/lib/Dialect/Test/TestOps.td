@@ -30,6 +30,7 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/MemorySlotInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Dialect/Bufferization/IR/BufferizableOpInterface.td"
 
 
 // Include the attribute definitions.
@@ -3219,6 +3220,35 @@ def TestMultiSlotAlloca : TEST_Op<"multi_slot_alloca",
      DeclareOpInterfaceMethods<DestructurableAllocationOpInterface>]> {
   let results = (outs Variadic<MemRefOf<[I32]>>:$results);
   let assemblyFormat = "attr-dict `:` functional-type(operands, results)";
+}
+
+def TestDummyTensorOp : TEST_Op<"dummy_tensor_op", [BufferizableOpInterface]> {
+  let arguments = (ins
+    Arg<TestTensorType>:$input
+  );
+  let results = (outs
+    Arg<TestTensorType>:$output
+  );
+  let extraClassDeclaration = [{
+    // BufferizableOpInterface
+    bool bufferizesToMemoryRead(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    bool bufferizesToMemoryWrite(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    // TODO: Rename getAliasingOpResults to something in the style of bufferization?
+    mlir::bufferization::AliasingValueList getAliasingOpResults(
+      mlir::OpOperand&,
+      const mlir::bufferization::AnalysisState&);
+    mlir::LogicalResult bufferize(mlir::RewriterBase& rewriter,
+                                  const mlir::bufferization::BufferizationOptions& options);
+  }];
+}
+
+def TestDummyMemrefOp : TEST_Op<"dummy_memref_op", []> {
+  let arguments = (ins
+    Arg<TestMemrefType>:$input
+  );
+  let results = (outs
+    Arg<TestMemrefType>:$output
+  );
 }
 
 #endif // TEST_OPS

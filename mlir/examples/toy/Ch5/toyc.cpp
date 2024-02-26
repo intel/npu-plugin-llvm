@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/Bufferization/Extensions/AllExtensions.h"
 #include "mlir/Dialect/Func/Extensions/AllExtensions.h"
 #include "mlir/IR/Diagnostics.h"
 #include "toy/AST.h"
@@ -116,6 +117,7 @@ int loadMLIR(llvm::SourceMgr &sourceMgr, mlir::MLIRContext &context,
 int dumpMLIR() {
   mlir::DialectRegistry registry;
   mlir::func::registerAllExtensions(registry);
+  mlir::bufferization::registerAllExtensions(registry);
 
   mlir::MLIRContext context(registry);
   // Load our Dialect in this MLIR Context.
