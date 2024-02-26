@@ -396,4 +396,48 @@ def TestTypeNewlineAndIndent : Test_Type<"TestTypeNewlineAndIndent"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+def TestTensorType : Test_Type<"TestTensor", [TensorTypeInterface]> {
+  let mnemonic = "test_tensor";
+  let parameters = (ins
+    ArrayRefParameter<"int64_t">:$shape,
+    "mlir::Type":$elementType
+  );
+  let assemblyFormat = "`<` `[` $shape `]` `,` $elementType `>`";
+
+  let extraClassDeclaration = [{
+    // ShapedTypeInterface:
+    bool hasRank() const {
+      return true;
+    }
+    mlir::ShapedType cloneWith(std::optional<llvm::ArrayRef<int64_t>> shape, mlir::Type elementType) const {
+      return test::TestTensorType::get(getContext(), shape.value_or(getShape()), elementType);
+    }
+  }];
+}
+
+def TestMemrefType : Test_Type<"TestMemref", [BaseMemRefTypeInterface]> {
+  let mnemonic = "test_memref";
+  let parameters = (ins
+    ArrayRefParameter<"int64_t">:$shape,
+    "mlir::Type":$elementType,
+    DefaultValuedParameter<"mlir::Attribute", "nullptr">:$memSpace
+  );
+  let assemblyFormat = "`<` `[` $shape `]` `,` $elementType (`,` $memSpace^)? `>`";
+
+  let extraClassDeclaration = [{
+    // ShapedTypeInterface:
+    bool hasRank() const {
+      return true;
+    }
+    mlir::ShapedType cloneWith(std::optional<llvm::ArrayRef<int64_t>> shape, mlir::Type elementType) const {
+      return test::TestMemrefType::get(getContext(), shape.value_or(getShape()), elementType, getMemSpace());
+    }
+
+    // BaseMemRefTypeInterface:
+    mlir::Attribute getMemorySpace() const {
+      return getMemSpace();
+    }
+  }];
+}
+
 #endif // TEST_TYPEDEFS

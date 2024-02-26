@@ -147,6 +147,7 @@ namespace test {
 void registerTestDialect(DialectRegistry &);
 void registerTestTransformDialectExtension(DialectRegistry &);
 void registerTestDynDialect(DialectRegistry &);
+void registerAllTestDialectPasses();
 } // namespace test
 
 #ifdef MLIR_INCLUDE_TESTS
@@ -262,6 +263,8 @@ void registerTestPasses() {
   mlir::test::registerTestVectorReductionToSPIRVDotProd();
   mlir::test::registerTestNvgpuLowerings();
   mlir::test::registerTestWrittenToPass();
+
+  ::test::registerAllTestDialectPasses();
 }
 #endif
 

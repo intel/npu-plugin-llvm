@@ -58,6 +58,11 @@ FailureOr<Value> castOrReallocMemRefValue(OpBuilder &b, Value value,
 LogicalResult foldToMemrefToTensorPair(RewriterBase &rewriter,
                                        ToMemrefOp toMemref);
 
+/// Returns a BufferizerInterface::getTensorTypeFromMemRefType() result,
+/// performing custom memref -> tensor type conversion for user types and
+/// builtins.
+Type getTensorTypeFromMemRefType(Type type);
+
 } // namespace bufferization
 } // namespace mlir
 

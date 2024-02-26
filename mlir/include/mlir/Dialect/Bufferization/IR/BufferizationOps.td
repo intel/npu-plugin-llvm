@@ -312,7 +312,7 @@ def Bufferization_ToTensorOp : Bufferization_Op<"to_tensor", [
     SameOperandsAndResultElementType,
     TypesMatchWith<"result type matches tensor equivalent of 'memref'",
                    "memref", "result",
-                   "memref::getTensorTypeFromMemRefType($_self)">
+                   "bufferization::getTensorTypeFromMemRefType($_self)">
   ]> {
   let summary = "create a tensor from a `memref`";
   let description = [{
@@ -411,7 +411,7 @@ def Bufferization_ToMemrefOp : Bufferization_Op<"to_memref", [
     Pure,
     TypesMatchWith<"type of 'tensor' is the tensor equivalent of 'memref'",
                    "memref", "tensor",
-                   "memref::getTensorTypeFromMemRefType($_self)">
+                   "bufferization::getTensorTypeFromMemRefType($_self)">
   ]> {
   let summary = "cast a tensor to memref";
   let description = [{

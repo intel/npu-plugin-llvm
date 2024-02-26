@@ -29,6 +29,7 @@ include "mlir/Interfaces/InferIntRangeInterface.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Dialect/Bufferization/IR/BufferizableOpInterface.td"
 
 
 // Include the attribute definitions.
@@ -795,7 +796,7 @@ def OpWithShapedTypeInferTypeInterfaceOp : TEST_Op<"op_with_shaped_type_infer_ty
   let results = (outs AnyTensor);
 }
 
-def OpWithShapedTypeInferTypeAdaptorInterfaceOp : 
+def OpWithShapedTypeInferTypeAdaptorInterfaceOp :
       TEST_Op<"op_with_shaped_type_infer_type_adaptor_if",
               [InferTensorTypeAdaptorWithReify]> {
   let arguments = (ins AnyTensor:$operand1, AnyTensor:$operand2);
@@ -3483,7 +3484,7 @@ def TestCallAndStoreOp : TEST_Op<"call_and_store",
 def TestStoreWithARegion : TEST_Op<"store_with_a_region",
     [DeclareOpInterfaceMethods<RegionBranchOpInterface>,
      SingleBlock]> {
-  let arguments = (ins 
+  let arguments = (ins
     Arg<AnyMemRef, "", [MemWrite]>:$address,
     BoolAttr:$store_before_region
   );
@@ -3495,6 +3496,34 @@ def TestStoreWithARegion : TEST_Op<"store_with_a_region",
 def TestStoreWithARegionTerminator : TEST_Op<"store_with_a_region_terminator",
     [DeclareOpInterfaceMethods<RegionBranchTerminatorOpInterface>, Terminator, NoMemoryEffect]> {
   let assemblyFormat = "attr-dict";
+}
+
+def TestDummyTensorOp : TEST_Op<"dummy_tensor_op", [BufferizableOpInterface]> {
+  let arguments = (ins
+    Arg<TestTensorType>:$input
+  );
+  let results = (outs
+    Arg<TestTensorType>:$output
+  );
+  let extraClassDeclaration = [{
+    // BufferizableOpInterface
+    bool bufferizesToMemoryRead(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    bool bufferizesToMemoryWrite(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    mlir::bufferization::AliasingOpResultList getAliasingOpResults(
+      mlir::OpOperand&,
+      const mlir::bufferization::AnalysisState&);
+    mlir::LogicalResult bufferize(mlir::RewriterBase& rewriter,
+                                  const mlir::bufferization::BufferizationOptions& options);
+  }];
+}
+
+def TestDummyMemrefOp : TEST_Op<"dummy_memref_op", []> {
+  let arguments = (ins
+    Arg<TestMemrefType>:$input
+  );
+  let results = (outs
+    Arg<TestMemrefType>:$output
+  );
 }
 
 #endif // TEST_OPS

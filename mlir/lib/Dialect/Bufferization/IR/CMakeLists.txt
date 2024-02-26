@@ -21,4 +21,5 @@ add_mlir_dialect_library(MLIRBufferizationDialect
   MLIRSparseTensorDialect
   MLIRTensorDialect
   MLIRMemRefDialect
+  MLIRBufferizationAllExtensions
   )
