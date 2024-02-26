@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "TestDialect.h"
+#include "Passes.h"
 #include "TestAttributes.h"
 #include "TestInterfaces.h"
 #include "TestTypes.h"
@@ -21,6 +22,7 @@
 #include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/ODSSupport.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -29,7 +31,10 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/Interfaces/InferIntRangeInterface.h"
 #include "mlir/Support/LLVM.h"
+#include "mlir/Pass/PassRegistry.h"
+#include "mlir/Reducer/ReductionPatternInterface.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Transforms/BufferizationUtils.h"
 #include "mlir/Transforms/FoldUtils.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
@@ -140,6 +145,23 @@ void test::registerTestDialect(DialectRegistry &registry) {
   registry.insert<TestDialect>();
 }
 
+namespace {
+
+struct TestDialectBufferizer : DialectBufferizerInterface {
+  using DialectBufferizerInterface::DialectBufferizerInterface;
+
+  Type getTensorTypeFromMemRefType(Type type) const final {
+    if (auto testMemrefType = mlir::dyn_cast<test::TestMemrefType>(type)) {
+      return test::TestTensorType::get(testMemrefType.getContext(),
+                                       testMemrefType.getShape(),
+                                       testMemrefType.getElementType());
+    }
+    return NoneType::get(type.getContext());
+  }
+};
+
+} // namespace
+
 //===----------------------------------------------------------------------===//
 // Dynamic operations
 //===----------------------------------------------------------------------===//
@@ -232,6 +254,10 @@ void TestDialect::initialize() {
   registerDynamicOp(getDynamicOneOperandTwoResultsOp(this));
   registerDynamicOp(getDynamicCustomParserPrinterOp(this));
   registerInterfaces();
+
+  // add bufferizer interface
+  addInterface<TestDialectBufferizer>();
+
   allowUnknownOperations();
 
   // Instantiate our fallback op interface that we'll use on specific
@@ -497,6 +523,50 @@ ParseResult AffineScopeOp::parse(OpAsmParser &parser, OperationState &result) {
 void AffineScopeOp::print(OpAsmPrinter &p) {
   p << " ";
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/false);
+}
+
+//===----------------------------------------------------------------------===//
+// Test DummyTensorOp - one-shot bufferization interface
+//===----------------------------------------------------------------------===//
+
+bool test::TestDummyTensorOp::bufferizesToMemoryRead(
+    mlir::OpOperand &, const mlir::bufferization::AnalysisState &) {
+  return true;
+}
+
+bool test::TestDummyTensorOp::bufferizesToMemoryWrite(
+    mlir::OpOperand &, const mlir::bufferization::AnalysisState &) {
+  return true;
+}
+
+mlir::bufferization::AliasingValueList
+test::TestDummyTensorOp::getAliasingOpResults(
+    mlir::OpOperand &, const mlir::bufferization::AnalysisState &) {
+  return {};
+}
+
+mlir::LogicalResult test::TestDummyTensorOp::bufferize(
+    mlir::RewriterBase &rewriter,
+    const mlir::bufferization::BufferizationOptions &options) {
+  const auto inputType = getInput().getType();
+  const auto bufferizedInputType = test::TestMemrefType::get(
+      getContext(), inputType.getShape(), inputType.getElementType(), nullptr);
+  const auto outputType = getOutput().getType();
+  const auto bufferizedOutputType =
+      test::TestMemrefType::get(getContext(), outputType.getShape(),
+                                outputType.getElementType(), nullptr);
+
+  // replace op with memref analogy, preserve correct types at the boundaries
+  auto toMemref = rewriter.create<mlir::bufferization::ToMemrefOp>(
+      getLoc(), bufferizedInputType, getInput());
+  auto dummyMemrefOp = rewriter.create<test::TestDummyMemrefOp>(
+      getLoc(), bufferizedOutputType, toMemref.getResult());
+  auto toTensor = rewriter.create<mlir::bufferization::ToTensorOp>(
+      getLoc(), dummyMemrefOp.getOutput());
+
+  rewriter.replaceOp(*this, toTensor);
+
+  return mlir::success();
 }
 
 //===----------------------------------------------------------------------===//

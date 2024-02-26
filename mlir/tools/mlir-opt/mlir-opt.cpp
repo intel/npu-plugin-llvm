@@ -153,6 +153,7 @@ void registerTestDialect(DialectRegistry &);
 void registerTestDynDialect(DialectRegistry &);
 void registerTestTilingInterfaceTransformDialectExtension(DialectRegistry &);
 void registerTestTransformDialectExtension(DialectRegistry &);
+void registerAllTestDialectPasses();
 } // namespace test
 
 #ifdef MLIR_INCLUDE_TESTS
@@ -267,6 +268,8 @@ void registerTestPasses() {
   mlir::test::registerTestPDLByteCodePass();
   mlir::test::registerTestPDLLPasses();
 #endif
+
+  ::test::registerAllTestDialectPasses();
 }
 #endif
 

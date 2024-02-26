@@ -13,8 +13,9 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/IR/Matchers.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/IR/Matchers.h"
+#include "mlir/Transforms/BufferizationUtils.h"
 #include <optional>
 
 using namespace mlir;
@@ -126,6 +127,12 @@ mlir::bufferization::foldToMemrefToTensorPair(RewriterBase &rewriter,
   rewriter.replaceOpWithNewOp<memref::CastOp>(toMemref, destType,
                                               memrefToTensor.getMemref());
   return success();
+}
+
+Type mlir::bufferization::getTensorTypeFromMemRefType(Type type) {
+  MLIRContext *ctx = type.getContext();
+  BufferizerInterface interface(ctx);
+  return interface.getTensorTypeFromMemRefType(type);
 }
 
 void mlir::bufferization::populateDynamicDimSizes(

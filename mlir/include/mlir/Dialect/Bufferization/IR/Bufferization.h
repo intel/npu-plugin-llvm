@@ -66,6 +66,11 @@ LogicalResult foldToMemrefToTensorPair(RewriterBase &rewriter,
 void populateDeallocOpCanonicalizationPatterns(RewritePatternSet &patterns,
                                                MLIRContext *context);
 
+/// Returns a BufferizerInterface::getTensorTypeFromMemRefType() result,
+/// performing custom memref -> tensor type conversion for user types and
+/// builtins.
+Type getTensorTypeFromMemRefType(Type type);
+
 } // namespace bufferization
 } // namespace mlir
 

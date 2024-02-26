@@ -42,6 +42,10 @@ mlir_tablegen(TestOpsSyntax.h.inc -gen-op-decls)
 mlir_tablegen(TestOpsSyntax.cpp.inc -gen-op-defs)
 add_public_tablegen_target(MLIRTestOpsSyntaxIncGen)
 
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+mlir_tablegen(Passes.h.inc -gen-pass-decls -name Test)
+add_public_tablegen_target(MLIRTestPassIncGen)
+
 # Exclude tests from libMLIR.so
 add_mlir_library(MLIRTestDialect
   TestAttributes.cpp
@@ -52,6 +56,7 @@ add_mlir_library(MLIRTestDialect
   TestTypes.cpp
   TestOpsSyntax.cpp
   TestDialectInterfaces.cpp
+  Passes.cpp
 
   EXCLUDE_FROM_LIBMLIR
 
@@ -62,6 +67,7 @@ add_mlir_library(MLIRTestDialect
   MLIRTestTypeDefIncGen
   MLIRTestOpsIncGen
   MLIRTestOpsSyntaxIncGen
+  MLIRTestPassIncGen
 
   LINK_LIBS PUBLIC
   MLIRControlFlowInterfaces
