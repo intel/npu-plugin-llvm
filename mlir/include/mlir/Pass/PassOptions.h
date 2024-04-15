@@ -289,6 +289,9 @@ public:
   /// Copy the option values from 'other' into 'this', where 'other' has the
   /// same options as 'this'.
   void copyOptionValuesFrom(const PassOptions &other);
+  
+  /// Copy only those options that have the same argument name.
+  void matchAndCopyOptionValuesFrom(const PassOptions &otherPassOptions);
 
   /// Parse options out as key=value pairs that can then be handed off to the
   /// `llvm::cl` command line passing infrastructure. Everything is space
