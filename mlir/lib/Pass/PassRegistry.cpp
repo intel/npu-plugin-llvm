@@ -208,6 +208,19 @@ void detail::PassOptions::copyOptionValuesFrom(const PassOptions &other) {
     std::get<0>(optionsIt)->copyValueFrom(*std::get<1>(optionsIt));
 }
 
+/// Copy only those options that have the same argument name.
+void detail::PassOptions::matchAndCopyOptionValuesFrom(const PassOptions &other) {
+  for (auto* optionsIt : other.options) {
+    const auto& it = llvm::find_if(options, [&](OptionBase * option) {
+      return option->getArgStr() == optionsIt->getArgStr();
+    });
+
+    if (it != options.end()) {
+      (*it)->copyValueFrom(*optionsIt);
+    }
+  }
+}
+
 /// Parse in the next argument from the given options string. Returns a tuple
 /// containing [the key of the option, the value of the option, updated
 /// `options` string pointing after the parsed option].

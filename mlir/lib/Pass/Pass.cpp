@@ -78,6 +78,12 @@ void Pass::copyOptionValuesFrom(const Pass *other) {
   passOptions.copyOptionValuesFrom(other->passOptions);
 }
 
+/// Copy the option values from 'other', which are PassPipeline options.
+/// Here we copy only those options that have the same argument name.
+void Pass::copyOptionValuesFrom(const PassOptions &other) {
+  passOptions.matchAndCopyOptionValuesFrom(other);
+}
+
 /// Prints out the pass in the textual representation of pipelines. If this is
 /// an adaptor pass, print its pass managers.
 void Pass::printAsTextualPipeline(raw_ostream &os) {
