@@ -1277,8 +1277,8 @@ unsigned DWARFVerifier::verifyNameIndexAttribute(
   }
 
   if (AttrEnc.Index == dwarf::DW_IDX_parent) {
-    constexpr static auto AllowedForms = {dwarf::Form::DW_FORM_flag_present,
-                                          dwarf::Form::DW_FORM_ref4};
+    static constexpr dwarf::Form AllowedForms[] = {dwarf::Form::DW_FORM_flag_present,
+                                                   dwarf::Form::DW_FORM_ref4};
     if (!is_contained(AllowedForms, AttrEnc.Form)) {
       error() << formatv("NameIndex @ {0:x}: Abbreviation {1:x}: DW_IDX_parent "
                          "uses an unexpected form {2} (should be "
