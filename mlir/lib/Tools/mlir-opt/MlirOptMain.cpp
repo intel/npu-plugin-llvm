@@ -562,14 +562,9 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                     [&](auto name) { os << name; });
   }
 
-  // It is not possible to place a call after command line parser
-  // since not all options are registered at the moment
+  MlirOptMainConfig::registerCLOptions(registry);
   additionalRegistration(helpHeader);
 
-  MlirOptMainConfig::registerCLOptions(registry);
-
-  // Parse pass names in main to ensure static initialization completed.
-  cl::ParseCommandLineOptions(argc, argv, helpHeader);
   MlirOptMainConfig config = MlirOptMainConfig::createFromCLOptions();
 
   // When reading from stdin and the input is a tty, it is often a user mistake
