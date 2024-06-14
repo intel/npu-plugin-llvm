@@ -130,7 +130,7 @@ struct format_provider<
 private:
 public:
   static void format(const T &V, llvm::raw_ostream &Stream, StringRef Style) {
-    HexPrintStyle HS;
+    HexPrintStyle HS = HexPrintStyle::PrefixUpper;
     size_t Digits = 0;
     if (consumeHexStyle(Style, HS)) {
       Digits = consumeNumHexDigits(Style, HS, 0);
