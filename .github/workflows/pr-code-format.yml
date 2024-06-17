@@ -13,7 +13,7 @@ jobs:
     if: github.repository == 'llvm/llvm-project'
     steps:
       - name: Fetch LLVM sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -35,7 +35,7 @@ jobs:
       # PR for security reasons as we're using pull_request_target. Checkout
       # the target branch with the necessary files.
       - name: Fetch code formatting utils
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
         with:
           sparse-checkout: |
             llvm/utils/git/requirements_formatting.txt
