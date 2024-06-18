@@ -55,7 +55,7 @@ jobs:
             cc: 'gcc-14'
             cxx: 'g++-14'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.7
       - name: ${{ matrix.config }}.${{ matrix.cxx }}
         run: libcxx/utils/ci/run-buildbot ${{ matrix.config }}
         env:
@@ -101,7 +101,7 @@ jobs:
             cc: 'clang-19'
             cxx: 'clang++-19'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.7
       - name: ${{ matrix.config }}
         run: libcxx/utils/ci/run-buildbot ${{ matrix.config }}
         env:
@@ -165,7 +165,7 @@ jobs:
     runs-on: ${{ matrix.machine }}
     container: ghcr.io/llvm/libcxx-linux-builder:d8a0709b1090350a7fe3604d8ab78c7d62f10698
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.7
       - name: ${{ matrix.config }}
         run: libcxx/utils/ci/run-buildbot ${{ matrix.config }}
         env:
