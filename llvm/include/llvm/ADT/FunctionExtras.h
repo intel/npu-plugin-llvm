@@ -152,7 +152,7 @@ protected:
       void *StoragePtr;
       size_t Size;
       size_t Alignment;
-    } OutOfLineStorage;
+    } OutOfLineStorage = {};
     static_assert(
         sizeof(OutOfLineStorageT) <= InlineStorageSize,
         "Should always use all of the out-of-line storage for inline storage!");
