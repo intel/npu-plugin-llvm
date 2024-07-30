@@ -251,6 +251,7 @@ def PrintIRPass : Pass<"print-ir"> {
   let constructor = "mlir::createPrintIRPass()";
   let options = [
     Option<"label", "label", "std::string", /*default=*/"", "Label">,
+    Option<"file", "file", "std::string", /*default=*/"", "File">,
   ];
 }
 

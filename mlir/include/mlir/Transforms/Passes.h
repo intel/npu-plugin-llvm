@@ -69,7 +69,7 @@ std::unique_ptr<Pass> createControlFlowSinkPass();
 std::unique_ptr<Pass> createCSEPass();
 
 /// Creates a pass to print IR on the debug stream.
-std::unique_ptr<Pass> createPrintIRPass(const PrintIRPassOptions & = {});
+std::unique_ptr<Pass> createPrintIRPass(const PrintIRPassOptions & = {}, OpPrintingFlags printingFlags = std::nullopt);
 
 /// Creates a pass that generates IR to verify ops at runtime.
 std::unique_ptr<Pass> createGenerateRuntimeVerificationPass();
