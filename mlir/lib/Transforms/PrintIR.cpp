@@ -18,11 +18,10 @@ namespace {
 #include "mlir/Transforms/Passes.h.inc"
 
 struct PrintIRPass : public impl::PrintIRPassBase<PrintIRPass> {
-  PrintIRPass(const PrintIRPassOptions &options):
-    PrintIRPassBase(options) {}
+  PrintIRPass(const PrintIRPassOptions &options) : PrintIRPassBase(options) {}
 
-  PrintIRPass(const PrintIRPassOptions &options, OpPrintingFlags printingFlags):
-    PrintIRPassBase(options), printingFlags(printingFlags) {}
+  PrintIRPass(const PrintIRPassOptions &options, OpPrintingFlags printingFlags)
+      : PrintIRPassBase(options), printingFlags(printingFlags) {}
 
   void runOnOperation() override {
     if (this->file.empty()) {
@@ -57,7 +56,8 @@ private:
 
 } // namespace
 
-std::unique_ptr<Pass> createPrintIRPass(const PrintIRPassOptions &options, OpPrintingFlags printingFlags) {
+std::unique_ptr<Pass> createPrintIRPass(const PrintIRPassOptions &options,
+                                        OpPrintingFlags printingFlags) {
   return std::make_unique<PrintIRPass>(options, printingFlags);
 }
 
