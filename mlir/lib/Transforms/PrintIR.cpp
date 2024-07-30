@@ -25,7 +25,7 @@ struct PrintIRPass : public impl::PrintIRPassBase<PrintIRPass> {
 
   void runOnOperation() override {
     if (this->file.empty()) {
-      printIRTo(llvm::errs());
+      printIR(llvm::errs());
       return;
     }
 
@@ -38,11 +38,11 @@ struct PrintIRPass : public impl::PrintIRPassBase<PrintIRPass> {
       return;
     }
 
-    printIRTo(stream);
+    printIR(stream);
   }
 
 private:
-  void printIRTo(llvm::raw_ostream &stream) {
+  void printIR(llvm::raw_ostream &stream) {
     stream << "// -----// IR Dump";
     if (!this->label.empty())
       stream << " " << this->label;
