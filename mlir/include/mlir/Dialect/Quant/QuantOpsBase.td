@@ -67,8 +67,18 @@ def quant_UniformQuantizedType :
                 CPred<"::llvm::isa<UniformQuantizedType>($_self)">,
                 "UniformQuantizedType">;
 
+// An implementation of QuantileQuantizedType.
+def quant_QuantileQuantizedType :
+    DialectType<Quantization_Dialect,
+                CPred<"::llvm::isa<QuantileQuantizedType>($_self)">,
+                "QuantileQuantizedType">;
+
 // Predicate for detecting a container or primitive of UniformQuantizedType.
 def quant_UniformQuantizedValueType :
     quant_TypedPrimitiveOrContainer<quant_UniformQuantizedType>;
+
+// Predicate for detecting a container or primitive of QuantileQuantizedType.
+def quant_QuantileQuantizedValueType :
+    quant_TypedPrimitiveOrContainer<quant_QuantileQuantizedType>;
 
 #endif // DIALECT_QUANT_QUANT_OPS_BASE_

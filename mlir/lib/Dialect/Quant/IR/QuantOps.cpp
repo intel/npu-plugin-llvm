@@ -28,7 +28,8 @@ using namespace mlir::quant::detail;
 
 void QuantizationDialect::initialize() {
   addTypes<AnyQuantizedType, CalibratedQuantizedType, UniformQuantizedType,
-           UniformQuantizedPerAxisType>();
+           UniformQuantizedPerAxisType, QuantileQuantizedType,
+           QuantileQuantizedPerAxisType>();
   addOperations<
 #define GET_OP_LIST
 #include "mlir/Dialect/Quant/QuantOps.cpp.inc"

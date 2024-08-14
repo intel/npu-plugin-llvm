@@ -378,6 +378,105 @@ int32_t UniformQuantizedPerAxisType::getQuantizedDimension() const {
   return getImpl()->quantizedDimension;
 }
 
+QuantileQuantizedType
+QuantileQuantizedType::get(unsigned flags, Type storageType, Type expressedType,
+                           ArrayRef<double> quantiles, double scale,
+                           int64_t zeroPoint, int64_t storageTypeMin,
+                           int64_t storageTypeMax) {
+  return Base::get(storageType.getContext(), flags, storageType, expressedType,
+                   quantiles, scale, zeroPoint, storageTypeMin, storageTypeMax);
+}
+
+QuantileQuantizedType QuantileQuantizedType::getChecked(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type expressedType, ArrayRef<double> quantiles,
+    double scale, int64_t zeroPoint, int64_t storageTypeMin,
+    int64_t storageTypeMax) {
+  return Base::getChecked(emitError, storageType.getContext(), flags,
+                          storageType, expressedType, quantiles, scale,
+                          zeroPoint, storageTypeMin, storageTypeMax);
+}
+
+LogicalResult
+QuantileQuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
+                              unsigned flags, Type storageType,
+                              Type expressedType, ArrayRef<double> quantiles,
+                              double scale, int64_t zeroPoint,
+                              int64_t storageTypeMin, int64_t storageTypeMax) {
+  if (failed(UniformQuantizedType::verify(emitError, flags, storageType,
+                                          expressedType, scale, zeroPoint,
+                                          storageTypeMin, storageTypeMax))) {
+    return failure();
+  }
+
+  if (quantiles.size() == 0)
+    return emitError() << "quantiles array cannot be empty: "
+                       << quantiles.size();
+
+  // Verify scale.
+  for (double quantile : quantiles) {
+    if (std::isinf(quantile) || std::isnan(quantile))
+      return emitError() << "illegal quantile value: " << quantile;
+  }
+
+  return success();
+}
+
+ArrayRef<double> QuantileQuantizedType::getQuantiles() const {
+  return getImpl()->getQuantiles();
+}
+
+QuantileQuantizedPerAxisType QuantileQuantizedPerAxisType::get(
+    unsigned flags, Type storageType, Type expressedType,
+    ArrayRef<double> quantiles, ArrayRef<double> scales,
+    ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  return Base::get(storageType.getContext(), flags, storageType, expressedType,
+                   quantiles, scales, zeroPoints, quantizedDimension,
+                   storageTypeMin, storageTypeMax);
+}
+
+QuantileQuantizedPerAxisType QuantileQuantizedPerAxisType::getChecked(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type expressedType, ArrayRef<double> quantiles,
+    ArrayRef<double> scales, ArrayRef<int64_t> zeroPoints,
+    int32_t quantizedDimension, int64_t storageTypeMin,
+    int64_t storageTypeMax) {
+  return Base::getChecked(emitError, storageType.getContext(), flags,
+                          storageType, expressedType, quantiles, scales,
+                          zeroPoints, quantizedDimension, storageTypeMin,
+                          storageTypeMax);
+}
+
+LogicalResult QuantileQuantizedPerAxisType::verify(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type expressedType, ArrayRef<double> quantiles,
+    ArrayRef<double> scales, ArrayRef<int64_t> zeroPoints,
+    int32_t quantizedDimension, int64_t storageTypeMin,
+    int64_t storageTypeMax) {
+  if (failed(UniformQuantizedPerAxisType::verify(
+          emitError, flags, storageType, expressedType, scales, zeroPoints,
+          quantizedDimension, storageTypeMin, storageTypeMax))) {
+    return failure();
+  }
+
+  if (quantiles.size() == 0)
+    return emitError() << "quantiles array cannot be empty: "
+                       << quantiles.size();
+
+  // Verify scale.
+  for (double quantile : quantiles) {
+    if (std::isinf(quantile) || std::isnan(quantile))
+      return emitError() << "illegal quantile value: " << quantile;
+  }
+
+  return success();
+}
+
+ArrayRef<double> QuantileQuantizedPerAxisType::getQuantiles() const {
+  return getImpl()->getQuantiles();
+}
+
 CalibratedQuantizedType CalibratedQuantizedType::get(Type expressedType,
                                                      double min, double max) {
   return Base::get(expressedType.getContext(), expressedType, min, max);
