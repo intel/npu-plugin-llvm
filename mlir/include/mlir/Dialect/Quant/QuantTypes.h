@@ -392,24 +392,19 @@ public:
   }
 };
 
-/// Represents a family of uniform, quantized types with .
-///
-/// Each instance of this type expresses a mapping between real values (most
-/// often expressed in floating point f32) and quantized values (either fixed
-/// point or affine).
-///
-/// The relationship is:
-///     real_value = scale * (quantized_value - zero_point)
+/// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
+/// look up table array of quantile values.
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
-///     !quant<uniform[StorageType:ExpressedType]{Quantiles}:{Scale:ZeroPoint}>
+///     !quant<quantile[StorageType:ExpressedType]{Quantiles}:{Scale:ZeroPoint}>
 ///   Per-layer, optional parameters omitted:
-///     !quant<uniform[StorageType]{Quantiles}:{Scale}>
+///     !quant<quantile[StorageType]{Quantiles}:{Scale}>
 ///
 ///   StorageType: 'i'|'u' NumBits
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
-///   Quantiles: An array of legal double values
+///   Quantiles: Quantile+
+///   Quantile: A legal double value
 ///   Scale: A legal double value
 ///   ZeroPoint: An integer value
 class QuantileQuantizedType
@@ -453,18 +448,20 @@ public:
   bool isFixedPoint() const { return isSigned() && getZeroPoint() == 0; }
 };
 
-/// Represents per-axis (also known as per-channel quantization).
+/// Represents per-axis QuantileQuantizedType (also known as per-channel
+/// quantization).
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:
-///     !quant<uniform[StorageType:ExpressedType:QuantizedDim]{Quantiles}:{QuantParams}>
+///     !quant<quantile[StorageType:ExpressedType:QuantizedDim]{Quantiles}:{QuantParams}>
 ///   Per-axis, optional parameters omitted:
-///     !quant<uniform[StorageType]{Scale}>
+///     !quant<quantile[StorageType]{Quantiles}:{Scale}>
 ///
 ///   StorageType: 'i'|'u' NumBits
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   QuantizedDim: An integer value
-///   Quantiles: An array of legal double values
+///   Quantiles: Quantile+
+///   Quantile: A legal double value
 ///   QuantParams: (Scale ':' ZeroPoint)+
 ///   Scale: A legal double value
 ///   ZeroPoint: An integer value

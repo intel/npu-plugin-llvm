@@ -413,7 +413,7 @@ QuantileQuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
     return emitError() << "quantiles array cannot be empty: "
                        << quantiles.size();
 
-  // Verify scale.
+  // Verify quantiles
   for (double quantile : quantiles) {
     if (std::isinf(quantile) || std::isnan(quantile))
       return emitError() << "illegal quantile value: " << quantile;
@@ -464,7 +464,7 @@ LogicalResult QuantileQuantizedPerAxisType::verify(
     return emitError() << "quantiles array cannot be empty: "
                        << quantiles.size();
 
-  // Verify scale.
+  // Verify quantiles
   for (double quantile : quantiles) {
     if (std::isinf(quantile) || std::isnan(quantile))
       return emitError() << "illegal quantile value: " << quantile;
