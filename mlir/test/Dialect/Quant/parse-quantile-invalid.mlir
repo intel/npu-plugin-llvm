@@ -1,6 +1,15 @@
 // RUN: mlir-opt %s -split-input-file -verify-diagnostics
 
 // -----
+// Illegal quantile array size
+// expected-error@+1 {{quantiles array size needs to be equal to 2^(bit_size(storageType)), expected: 256, found: 2}}
+!qalias = !quant.quantile<i8:f32, {-1.0,1.0}:0.99872:127>
+func.func @parse() -> !qalias {
+  %0 = "foo"() : () -> !qalias
+  return %0 : !qalias
+}
+
+// -----
 // Unrecognized token: trailing
 // expected-error@+1 {{expected '>'}}
 !qalias = !quant.quantile<i8<-4:3>:f32, {-1.0,1.0}:0.99872:127 23>

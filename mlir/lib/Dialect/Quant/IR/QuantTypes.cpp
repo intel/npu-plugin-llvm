@@ -396,7 +396,6 @@ QuantileQuantizedType QuantileQuantizedType::getChecked(
                           storageType, expressedType, quantiles, scale,
                           zeroPoint, storageTypeMin, storageTypeMax);
 }
-
 LogicalResult
 QuantileQuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
                               unsigned flags, Type storageType,
@@ -409,14 +408,31 @@ QuantileQuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
     return failure();
   }
 
-  if (quantiles.size() == 0)
-    return emitError() << "quantiles array cannot be empty: "
-                       << quantiles.size();
+  const auto quantileArraySize = quantiles.size();
+  unsigned typeWidth{};
+  if (storageType.isa<IntegerType>()) {
+    typeWidth = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+  } else if (storageType.isa<Float8E5M2Type>() ||
+             storageType.isa<Float8E4M3FNType>()) {
+    // Both Float8E5M2Type and Float8E4M3FNType derive from FloatType.
+    typeWidth = llvm::dyn_cast<FloatType>(storageType).getWidth();
+  } else {
+    return emitError() << "illegal storage type, supported types are: integral "
+                          "types, Float8E4M3FNType and Float8E5M2Type ";
+  }
+
+  const size_t expectedSize = 1 << typeWidth;
+  if (quantileArraySize != expectedSize) {
+    return emitError() << "quantiles array size needs to be equal to "
+                          "2^(bit_size(storageType)), expected: "
+                       << expectedSize << ", found: " << quantileArraySize;
+  }
 
   // Verify quantiles
   for (double quantile : quantiles) {
-    if (std::isinf(quantile) || std::isnan(quantile))
+    if (std::isinf(quantile) || std::isnan(quantile)) {
       return emitError() << "illegal quantile value: " << quantile;
+    }
   }
 
   return success();
@@ -460,14 +476,31 @@ LogicalResult QuantileQuantizedPerAxisType::verify(
     return failure();
   }
 
-  if (quantiles.size() == 0)
-    return emitError() << "quantiles array cannot be empty: "
-                       << quantiles.size();
+  const auto quantileArraySize = quantiles.size();
+  unsigned typeWidth{};
+  if (storageType.isa<IntegerType>()) {
+    typeWidth = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+  } else if (storageType.isa<Float8E5M2Type>() ||
+             storageType.isa<Float8E4M3FNType>()) {
+    // Both Float8E5M2Type and Float8E4M3FNType derive from FloatType.
+    typeWidth = llvm::dyn_cast<FloatType>(storageType).getWidth();
+  } else {
+    return emitError() << "illegal storage type, supported types are: integral "
+                          "types, Float8E4M3FNType and Float8E5M2Type ";
+  }
+
+  const size_t expectedSize = 1 << typeWidth;
+  if (quantileArraySize != expectedSize) {
+    return emitError() << "quantiles array size needs to be equal to "
+                          "2^(bit_size(storageType)), expected: "
+                       << expectedSize << ", found: " << quantileArraySize;
+  }
 
   // Verify quantiles
   for (double quantile : quantiles) {
-    if (std::isinf(quantile) || std::isnan(quantile))
+    if (std::isinf(quantile) || std::isnan(quantile)) {
       return emitError() << "illegal quantile value: " << quantile;
+    }
   }
 
   return success();
