@@ -297,7 +297,7 @@ static Type parseUniformType(DialectAsmParser &parser, bool isQuantile) {
     }
 
     do {
-      quantiles.resize(quantiles.size() + 1);
+      quantiles.emplace_back();
       if (parser.parseFloat(quantiles.back())) {
         return nullptr;
       }

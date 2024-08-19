@@ -510,9 +510,7 @@ public:
   /// the zeroPoint.
   /// In the future, this may be explicit versus implied by type and zeroPoint.
   bool isFixedPoint() const {
-    if (!isSigned())
-      return false;
-    return !llvm::is_contained(getZeroPoints(), 0);
+    return isSigned() && !llvm::is_contained(getZeroPoints(), 0);
   }
 };
 
