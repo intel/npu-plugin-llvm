@@ -30,6 +30,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Support/Timing.h"
 #include "mlir/Support/ToolUtilities.h"
@@ -117,6 +118,10 @@ struct MlirOptMainConfigCLOptions : public MlirOptMainConfig {
         cl::desc("Disable implicit addition of a top-level module op during "
                  "parsing"),
         cl::location(useExplicitModuleFlag), cl::init(false));
+
+    static cl::opt<bool, /*ExternalStorage=*/true> listPasses(
+        "list-passes", cl::desc("Print the list of registered passes and exit"),
+        cl::location(listPassesFlag), cl::init(false));
 
     static cl::opt<bool, /*ExternalStorage=*/true> runReproducer(
         "run-reproducer", cl::desc("Run the pipeline stored in the reproducer"),
@@ -501,6 +506,11 @@ mlir::registerAndParseCLIOptions(int argc, char **argv,
   return std::make_pair(inputFilename.getValue(), outputFilename.getValue());
 }
 
+static LogicalResult printRegisteredPassesAndReturn() {
+  mlir::printRegisteredPasses();
+  return success();
+}
+
 LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
                                 std::unique_ptr<llvm::MemoryBuffer> buffer,
                                 DialectRegistry &registry,
@@ -510,6 +520,9 @@ LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
     interleave(registry.getDialectNames(), llvm::outs(), ",");
     llvm::outs() << "\n";
   }
+
+  if (config.shouldListPasses())
+    return printRegisteredPassesAndReturn();
 
   // The split-input-file mode is a very specific mode that slices the file
   // up into small pieces and checks each independently.
@@ -571,6 +584,9 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
   // Parse pass names in main to ensure static initialization completed.
   cl::ParseCommandLineOptions(argc, argv, helpHeader);
   MlirOptMainConfig config = MlirOptMainConfig::createFromCLOptions();
+
+  if (config.shouldListPasses())
+    return printRegisteredPassesAndReturn();
 
   // When reading from stdin and the input is a tty, it is often a user mistake
   // and the process "appears to be stuck". Print a message to let the user know
