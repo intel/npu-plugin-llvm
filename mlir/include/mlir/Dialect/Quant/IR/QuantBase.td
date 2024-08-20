@@ -226,6 +226,14 @@ class quant_ScalarOrTensorOf<Type etype> :
 
 def quant_QuantizedType :
     Type<CPred<"::llvm::isa<mlir::quant::QuantizedType>($_self)">, "quantized type">;
+    
+def quant_QuantileQuantizedType :
+    DialectType<Quant_Dialect,
+                CPred<"::llvm::isa<mlir::quant::QuantileQuantizedType>($_self)">,
+                "QuantileQuantizedType">;
+
+def quant_QuantileQuantizedValueType :
+    quant_ScalarOrTensorOf<quant_QuantileQuantizedType>;
 
 def quant_ScalarType :
     Type<Or<[

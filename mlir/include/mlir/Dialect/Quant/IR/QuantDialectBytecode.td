@@ -81,6 +81,35 @@ def UniformQuantizedPerAxisType: DialectType<(type
   }];
 }
 
+def QuantileQuantizedType: DialectType<(type
+  VarInt:$flags,
+  Type:$storageType,
+  Type:$expressedType,
+  Array<DoubleAPFloatList>:$quantiles,
+  DoubleAPFloat:$scale,
+  SignedVarInt:$zeroPoint,
+  SignedVarInt:$storageTypeMin,
+  SignedVarInt:$storageTypeMax
+)>;
+
+def QuantileQuantizedPerAxisType: DialectType<(type
+  VarInt:$flags,
+  Type:$storageType,
+  Type:$expressedType,
+  VarInt:$quantizedDimension,
+  SignedVarInt:$storageTypeMin,
+  SignedVarInt:$storageTypeMax,
+  Array<DoubleAPFloatList>:$quantiles,
+  Array<DoubleAPFloatList>:$scales,
+  Array<SignedVarIntList>:$zeroPoints
+)> {
+  // Note: builder order differs from bytecode.
+  let cBuilder = [{
+      get<$_resultType>(context, flags, storageType, expressedType, quantiles, scales,
+        zeroPoints, quantizedDimension, storageTypeMin, storageTypeMax)
+  }];
+}
+
 /// This enum contains marker codes used to indicate which attribute is
 /// currently being decoded, and how it should be decoded. The order of these
 /// codes should generally be unchanged, as any changes will inevitably break
@@ -93,7 +122,9 @@ def QuantDialectTypes : DialectTypes<"Quant"> {
     AnyQuantizedTypeWithExpressedType,
     CalibratedQuantizedType,
     UniformQuantizedType,
-    UniformQuantizedPerAxisType
+    UniformQuantizedPerAxisType,
+    QuantileQuantizedType,
+    QuantileQuantizedPerAxisType
   ];
 }
 
