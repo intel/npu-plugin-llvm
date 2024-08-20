@@ -253,6 +253,145 @@ struct UniformQuantizedPerAxisTypeStorage : public QuantizedTypeStorage {
   int32_t quantizedDimension;
 };
 
+struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
+  struct KeyTy : public UniformQuantizedTypeStorage::KeyTy {
+    KeyTy(unsigned flags, Type storageType, Type expressedType,
+          ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
+          int64_t storageTypeMin, int64_t storageTypeMax)
+        : UniformQuantizedTypeStorage::KeyTy(flags, storageType, expressedType,
+                                             scale, zeroPoint, storageTypeMin,
+                                             storageTypeMax),
+          quantiles(quantiles) {}
+
+    ArrayRef<double> quantiles;
+    ArrayRef<double> getQuantiles() const { return quantiles; }
+
+    // Check for equality of two structures that share KeyTy data members
+    // (by name).
+    template <typename T, typename U>
+    static bool genericIsEqual(const T &lhs, const U &rhs) {
+      return UniformQuantizedTypeStorage::KeyTy::genericIsEqual(lhs, rhs) &&
+             lhs.getQuantiles() == rhs.getQuantiles();
+    }
+
+    bool operator==(const KeyTy &other) const {
+      return genericIsEqual(*this, other);
+    }
+
+    unsigned getHashValue() const {
+      int64_t scaleBits = llvm::bit_cast<int64_t>(scale);
+      int64_t *quantilesCast = llvm::bit_cast<int64_t *>(quantiles.data());
+      ArrayRef<int64_t> quantilesBits(quantilesCast, quantiles.size());
+      return llvm::hash_combine(
+          flags, storageType, expressedType,
+          llvm::hash_combine_range(quantilesBits.begin(), quantilesBits.end()),
+          scaleBits, zeroPoint, storageTypeMin, storageTypeMax);
+    }
+  };
+
+  QuantileQuantizedTypeStorage(const KeyTy &key, ArrayRef<double> quantiles)
+      : UniformQuantizedTypeStorage(key), quantilesElements(quantiles.data()),
+        quantilesParamsSize(quantiles.size()) {}
+
+  bool operator==(const KeyTy &key) const {
+    return KeyTy::genericIsEqual(*this, key);
+  }
+
+  /// Construction.
+  static QuantileQuantizedTypeStorage *
+  construct(TypeStorageAllocator &allocator, const KeyTy &key) {
+    ArrayRef<double> quantiles = allocator.copyInto(key.quantiles);
+    return new (allocator.allocate<QuantileQuantizedTypeStorage>())
+        QuantileQuantizedTypeStorage(key, quantiles);
+  }
+
+  static unsigned hashKey(const KeyTy &key) { return key.getHashValue(); }
+
+  ArrayRef<double> getQuantiles() const {
+    return ArrayRef<double>(quantilesElements, quantilesParamsSize);
+  }
+
+  const double *quantilesElements;
+  unsigned quantilesParamsSize;
+};
+
+struct QuantileQuantizedPerAxisTypeStorage
+    : public UniformQuantizedPerAxisTypeStorage {
+  struct KeyTy : public UniformQuantizedPerAxisTypeStorage::KeyTy {
+    KeyTy(unsigned flags, Type storageType, Type expressedType,
+          ArrayRef<double> quantiles, ArrayRef<double> scales,
+          ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+          int64_t storageTypeMin, int64_t storageTypeMax)
+        : UniformQuantizedPerAxisTypeStorage::KeyTy(
+              flags, storageType, expressedType, scales, zeroPoints,
+              quantizedDimension, storageTypeMin, storageTypeMax),
+          quantiles(quantiles) {}
+
+    ArrayRef<double> quantiles;
+    ArrayRef<double> getQuantiles() const { return quantiles; }
+
+    // Check for equality of two structures that share KeyTy data members
+    // (by name).
+    template <typename T, typename U>
+    static bool genericIsEqual(const T &lhs, const U &rhs) {
+      return UniformQuantizedPerAxisTypeStorage::KeyTy::genericIsEqual(lhs,
+                                                                       rhs) &&
+             lhs.getQuantiles() == rhs.getQuantiles();
+    }
+
+    bool operator==(const KeyTy &other) const {
+      return genericIsEqual(*this, other);
+    }
+
+    unsigned getHashValue() const {
+      int64_t *scalesCast = llvm::bit_cast<int64_t *>(scales.data());
+      ArrayRef<int64_t> scalesBits(scalesCast, scales.size());
+      int64_t *quantilesCast = llvm::bit_cast<int64_t *>(quantiles.data());
+      ArrayRef<int64_t> quantilesBits(quantilesCast, quantiles.size());
+      return llvm::hash_combine(
+          flags, storageType, expressedType,
+          llvm::hash_combine_range(quantilesBits.begin(), quantilesBits.end()),
+          llvm::hash_combine_range(scalesBits.begin(), scalesBits.end()),
+          llvm::hash_combine_range(zeroPoints.begin(), zeroPoints.end()),
+          storageTypeMin, storageTypeMax);
+    }
+  };
+
+  // We pass quantiles, scales and zeroPoints in directly rather than relying on
+  // KeyTy because we have to create new reallocated versions in `construct`
+  // below.
+  QuantileQuantizedPerAxisTypeStorage(const KeyTy &key,
+                                      ArrayRef<double> quantiles,
+                                      ArrayRef<double> scales,
+                                      ArrayRef<int64_t> zeroPoints)
+      : UniformQuantizedPerAxisTypeStorage(key, scales, zeroPoints),
+        quantilesElements(quantiles.data()),
+        quantilesParamsSize(quantiles.size()) {}
+
+  bool operator==(const KeyTy &key) const {
+    return KeyTy::genericIsEqual(*this, key);
+  }
+
+  /// Construction.
+  static QuantileQuantizedPerAxisTypeStorage *
+  construct(TypeStorageAllocator &allocator, const KeyTy &key) {
+    ArrayRef<double> quantiles = allocator.copyInto(key.quantiles);
+    ArrayRef<double> scales = allocator.copyInto(key.scales);
+    ArrayRef<int64_t> zeroPoints = allocator.copyInto(key.zeroPoints);
+    return new (allocator.allocate<QuantileQuantizedPerAxisTypeStorage>())
+        QuantileQuantizedPerAxisTypeStorage(key, quantiles, scales, zeroPoints);
+  }
+
+  static unsigned hashKey(const KeyTy &key) { return key.getHashValue(); }
+
+  ArrayRef<double> getQuantiles() const {
+    return ArrayRef<double>(quantilesElements, quantilesParamsSize);
+  }
+
+  const double *quantilesElements;
+  unsigned quantilesParamsSize;
+}; // namespace detail
+
 struct CalibratedQuantizedTypeStorage : public QuantizedTypeStorage {
   struct KeyTy {
     KeyTy(Type expressedType, double min, double max)

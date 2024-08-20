@@ -93,7 +93,8 @@ LogicalResult verifyQuantizationOp(Operation *op, QuantizedType quantizedType,
 
 void QuantDialect::initialize() {
   addTypes<AnyQuantizedType, CalibratedQuantizedType, UniformQuantizedType,
-           UniformQuantizedPerAxisType>();
+           UniformQuantizedPerAxisType, QuantileQuantizedType,
+           QuantileQuantizedPerAxisType>();
   addOperations<
 #define GET_OP_LIST
 #include "mlir/Dialect/Quant/IR/QuantOps.cpp.inc"
