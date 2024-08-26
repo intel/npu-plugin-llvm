@@ -1168,6 +1168,8 @@ public:
 
   bool allowPrintingElementsAttrAsHex() const;
 
+  bool allowPrintingDenseResourcesByDefault() const;
+
   /// Return the size limit for printing large ElementsAttr.
   std::optional<int64_t> getLargeElementsAttrLimit() const;
 
@@ -1206,6 +1208,9 @@ private:
   // Allow printing DenseElementsAttrs with a hex string when the number of
   // elements is large
   bool allowPrintingHex : 1;
+
+  // TODO: this WA should be removed
+  bool allowPrintingDenseResources = false;
 
   /// Print debug information.
   bool printDebugInfoFlag : 1;
