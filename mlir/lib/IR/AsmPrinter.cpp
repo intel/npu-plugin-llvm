@@ -191,6 +191,14 @@ struct AsmPrinterOptions {
       "mlir-print-value-users", llvm::cl::init(false),
       llvm::cl::desc(
           "Print users of operation results and block arguments as a comment")};
+
+  llvm::cl::opt<bool> printDenseResources{
+      "mlir-allow-print-resources",
+      llvm::cl::desc(
+          "By default DenseResourceElementsAttr is converted to DenseElementsAttr while printing."
+          "This option allows print DenseResourceElementsAttr as is."
+          "This is temporary solution to support lit-tets and should be removed."),
+      llvm::cl::init(true)};
 };
 } // namespace
 
@@ -215,6 +223,8 @@ OpPrintingFlags::OpPrintingFlags()
     return;
   if (clOptions->elideElementsAttrIfLarger.getNumOccurrences())
     elementsAttrElementLimit = clOptions->elideElementsAttrIfLarger;
+  if (clOptions->printDenseResources.getNumOccurrences())
+    allowPrintingDenseResources = clOptions->printDenseResources;
   if (clOptions->elideResourceStringsIfLarger.getNumOccurrences())
     resourceStringCharLimit = clOptions->elideResourceStringsIfLarger;
   if (clOptions->printElementsAttrWithHexIfLarger.getNumOccurrences()) {
@@ -302,6 +312,10 @@ bool OpPrintingFlags::shouldElideElementsAttr(ElementsAttr attr) const {
 
 bool OpPrintingFlags::allowPrintingElementsAttrAsHex() const {
   return allowPrintingHex;
+}
+
+bool OpPrintingFlags::allowPrintingDenseResourcesByDefault() const {
+  return allowPrintingDenseResources;
 }
 
 /// Return the size limit for printing large ElementsAttr.
@@ -2253,6 +2267,14 @@ void AsmPrinter::Impl::printAttribute(Attribute attr,
 
 void AsmPrinter::Impl::printAttributeImpl(Attribute attr,
                                           AttrTypeElision typeElision) {
+  if (!printerFlags.allowPrintingDenseResourcesByDefault() && llvm::isa<DenseResourceElementsAttr>(attr)) {
+    auto resourceAttr = llvm::cast<DenseResourceElementsAttr>(attr);
+    auto* blob = resourceAttr.getRawHandle().getBlob();
+    if(blob != nullptr) {
+      attr = DenseElementsAttr::getFromRawBuffer(
+        resourceAttr.getType(), blob->getData());
+    }
+  }
   if (!isa<BuiltinDialect>(attr.getDialect())) {
     printDialectAttribute(attr);
   } else if (auto opaqueAttr = llvm::dyn_cast<OpaqueAttr>(attr)) {
