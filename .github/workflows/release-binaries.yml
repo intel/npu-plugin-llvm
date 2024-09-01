@@ -117,14 +117,14 @@ jobs:
         tar -C /mnt/ -c build/ | zstd -T0 -c > build.tar.zst
 
     - name: Upload Stage 1 Source
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage1-source
         path: llvm-project.tar.zst
         retention-days: 2
 
     - name: Upload Stage 1 Build Dir
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage1-build
         path: build.tar.zst
@@ -167,14 +167,14 @@ jobs:
         tar -C /mnt/ -c build/ | zstd -T0 -c > build.tar.zst
 
     - name: Upload Stage 2 Source
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage2-source
         path: ${{ github.workspace }}/llvm-project.tar.zst
         retention-days: 2
 
     - name: Upload Stage 2 Build Dir
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage2-build
         path: ${{ github.workspace }}/build.tar.zst
@@ -218,7 +218,7 @@ jobs:
         echo "filename=$filename" >> $GITHUB_OUTPUT
         echo "path=/mnt/build/tools/clang/stage2-bins/$filename" >> $GITHUB_OUTPUT
 
-    - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+    - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       if: always()
       with:
         name: release-binary
@@ -237,14 +237,14 @@ jobs:
         tar -C /mnt/ -c build/ | zstd -T0 -c > build.tar.zst
 
     - name: Upload Stage 3 Source
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage3-source
         path: llvm-project.tar.zst
         retention-days: 2
 
     - name: Upload Stage 3 Build Dir
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 #v4.4.0
       with:
         name: stage3-build
         path: build.tar.zst
