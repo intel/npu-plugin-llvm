@@ -1,4 +1,4 @@
-// RUN: mlir-opt -emit-bytecode %s | mlir-opt | FileCheck %s
+// RUN: mlir-opt -mlir-allow-print-resources -emit-bytecode %s | mlir-opt -mlir-allow-print-resources | FileCheck %s
 
 // CHECK-LABEL: @TestDialectResources
 module @TestDialectResources attributes {

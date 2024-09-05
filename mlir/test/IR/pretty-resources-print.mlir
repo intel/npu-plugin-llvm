@@ -1,6 +1,6 @@
 // Check printing with --mlir-elide-resource-strings-if-larger elides printing large resources
 
-// RUN: mlir-opt %s --mlir-elide-resource-strings-if-larger=20| FileCheck %s
+// RUN: mlir-opt -mlir-allow-print-resources %s --mlir-elide-resource-strings-if-larger=20| FileCheck %s
 
 // To ensure we print the resource keys, have reference to them
 // CHECK: attr = dense_resource<blob1> : tensor<3xi64>
