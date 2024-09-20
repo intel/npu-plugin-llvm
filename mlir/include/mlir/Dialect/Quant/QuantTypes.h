@@ -16,6 +16,7 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Types.h"
 #include "llvm/Support/MathExtras.h"
+#include <llvm/Support/Casting.h>
 
 namespace mlir {
 namespace quant {
@@ -397,11 +398,12 @@ public:
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
-///     !quant<quantile[StorageType:ExpressedType]{Quantiles}:{Scale:ZeroPoint}>
+///     !quant<quantile[StorageType:QuantileType:ExpressedType]{Quantiles}:{Scale:ZeroPoint}>
 ///   Per-layer, optional parameters omitted:
-///     !quant<quantile[StorageType]{Quantiles}:{Scale}>
+///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
 ///
 ///   StorageType: 'i'|'u' NumBits
+///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   Quantiles: Quantile+
 ///   Quantile: A legal double value
@@ -419,23 +421,30 @@ public:
   /// Gets an instance of the type with all parameters specified but not
   /// checked.
   static QuantileQuantizedType get(unsigned flags, Type storageType,
-                                   Type expressedType,
+                                   Type quantileType, Type expressedType,
                                    ArrayRef<double> quantiles, double scale,
                                    int64_t zeroPoint, int64_t storageTypeMin,
                                    int64_t storageTypeMax);
 
   static QuantileQuantizedType
   getChecked(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
-             Type storageType, Type expressedType, ArrayRef<double> quantiles,
-             double scale, int64_t zeroPoint, int64_t storageTypeMin,
-             int64_t storageTypeMax);
+             Type storageType, Type quantileType, Type expressedType,
+             ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
+             int64_t storageTypeMin, int64_t storageTypeMax);
 
   /// Verifies construction invariants and issues errors/warnings.
   static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
                               unsigned flags, Type storageType,
-                              Type expressedType, ArrayRef<double> quantiles,
-                              double scale, int64_t zeroPoint,
-                              int64_t storageTypeMin, int64_t storageTypeMax);
+                              Type quantileType, Type expressedType,
+                              ArrayRef<double> quantiles, double scale,
+                              int64_t zeroPoint, int64_t storageTypeMin,
+                              int64_t storageTypeMax);
+
+  /// Gets the quantileType
+  Type getQuantileType() const;
+
+  /// Gets the quantileType bit width
+  unsigned getQuantileTypeIntegralWidth() const;
 
   /// Gets the quantile values
   ArrayRef<double> getQuantiles() const;
@@ -453,11 +462,12 @@ public:
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:
-///     !quant<quantile[StorageType:ExpressedType:QuantizedDim]{Quantiles}:{QuantParams}>
+///     !quant<quantile[StorageType:QuantileType:ExpressedType:QuantizedDim]{Quantiles}:{QuantParams}>
 ///   Per-axis, optional parameters omitted:
-///     !quant<quantile[StorageType]{Quantiles}:{Scale}>
+///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
 ///
 ///   StorageType: 'i'|'u' NumBits
+///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   QuantizedDim: An integer value
 ///   Quantiles: Quantile+
@@ -478,7 +488,7 @@ public:
   /// Gets an instance of the type with all parameters specified but not
   /// checked.
   static QuantileQuantizedPerAxisType
-  get(unsigned flags, Type storageType, Type expressedType,
+  get(unsigned flags, Type storageType, Type quantileType, Type expressedType,
       ArrayRef<double> quantiles, ArrayRef<double> scales,
       ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
       int64_t storageTypeMin, int64_t storageTypeMax);
@@ -487,19 +497,24 @@ public:
   /// Returns a nullptr convertible type on failure.
   static QuantileQuantizedPerAxisType
   getChecked(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
-             Type storageType, Type expressedType, ArrayRef<double> quantiles,
-             ArrayRef<double> scales, ArrayRef<int64_t> zeroPoints,
-             int32_t quantizedDimension, int64_t storageTypeMin,
-             int64_t storageTypeMax);
+             Type storageType, Type quantileType, Type expressedType,
+             ArrayRef<double> quantiles, ArrayRef<double> scales,
+             ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+             int64_t storageTypeMin, int64_t storageTypeMax);
 
   /// Verifies construction invariants and issues errors/warnings.
-  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
-                              unsigned flags, Type storageType,
-                              Type expressedType, ArrayRef<double> quantiles,
-                              ArrayRef<double> scales,
-                              ArrayRef<int64_t> zeroPoints,
-                              int32_t quantizedDimension,
-                              int64_t storageTypeMin, int64_t storageTypeMax);
+  static LogicalResult
+  verify(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+         Type storageType, Type quantileType, Type expressedType,
+         ArrayRef<double> quantiles, ArrayRef<double> scales,
+         ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+         int64_t storageTypeMin, int64_t storageTypeMax);
+
+  /// Gets the quantileType
+  Type getQuantileType() const;
+
+  /// Gets the quantileType bit width
+  unsigned getQuantileTypeIntegralWidth() const;
 
   /// Gets the quantile values
   ArrayRef<double> getQuantiles() const;
