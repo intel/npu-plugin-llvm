@@ -299,7 +299,7 @@ LogicalResult UniformQuantizedType::verify(
     return emitError() << "expressed type must be floating point";
 
   // Verify scale.
-  if (scale <= 0.0 || std::isinf(scale) || std::isnan(scale))
+  if (std::isinf(scale) || std::isnan(scale))
     return emitError() << "illegal scale: " << scale;
 
   return success();
@@ -364,7 +364,7 @@ LogicalResult UniformQuantizedPerAxisType::verify(
 
   // Verify scale.
   for (double scale : scales) {
-    if (scale <= 0.0 || std::isinf(scale) || std::isnan(scale))
+    if (std::isinf(scale) || std::isnan(scale))
       return emitError() << "illegal scale: " << scale;
   }
 
