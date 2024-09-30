@@ -297,6 +297,8 @@ public:
                               int64_t zeroPoint, int64_t storageTypeMin,
                               int64_t storageTypeMax);
 
+  static bool classof(mlir::Type type);
+
   /// Gets the scale term. The scale designates the difference between the real
   /// values corresponding to consecutive quantized values differing by 1.
   double getScale() const;
@@ -359,6 +361,8 @@ public:
                               ArrayRef<int64_t> zeroPoints,
                               int32_t quantizedDimension,
                               int64_t storageTypeMin, int64_t storageTypeMax);
+
+  static bool classof(mlir::Type type);
 
   /// Gets the quantization scales. The scales designate the difference between
   /// the real values corresponding to consecutive quantized values differing
@@ -440,6 +444,8 @@ public:
                               int64_t zeroPoint, int64_t storageTypeMin,
                               int64_t storageTypeMax);
 
+  static bool classof(mlir::Type type);
+
   /// Gets the quantileType
   Type getQuantileType() const;
 
@@ -509,6 +515,8 @@ public:
          ArrayRef<double> quantiles, ArrayRef<double> scales,
          ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
          int64_t storageTypeMin, int64_t storageTypeMax);
+
+  static bool classof(mlir::Type type);
 
   /// Gets the quantileType
   Type getQuantileType() const;

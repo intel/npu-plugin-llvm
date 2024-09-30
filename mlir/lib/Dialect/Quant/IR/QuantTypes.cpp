@@ -12,6 +12,7 @@
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Support/TypeID.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/MathExtras.h"
@@ -305,6 +306,11 @@ LogicalResult UniformQuantizedType::verify(
   return success();
 }
 
+bool UniformQuantizedType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedType>() ||
+         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedType>();
+}
+
 double UniformQuantizedType::getScale() const { return getImpl()->scale; }
 
 int64_t UniformQuantizedType::getZeroPoint() const {
@@ -364,6 +370,11 @@ LogicalResult UniformQuantizedPerAxisType::verify(
   }
 
   return success();
+}
+
+bool UniformQuantizedPerAxisType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedPerAxisType>() ||
+         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedPerAxisType>();
 }
 
 ArrayRef<double> UniformQuantizedPerAxisType::getScales() const {
@@ -444,6 +455,10 @@ LogicalResult QuantileQuantizedType::verify(
   return success();
 }
 
+bool QuantileQuantizedType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<QuantileQuantizedType>();
+}
+
 Type QuantileQuantizedType::getQuantileType() const {
   return getImpl()->quantileType;
 }
@@ -518,6 +533,10 @@ LogicalResult QuantileQuantizedPerAxisType::verify(
   }
 
   return success();
+}
+
+bool QuantileQuantizedPerAxisType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<QuantileQuantizedPerAxisType>();
 }
 
 Type QuantileQuantizedPerAxisType::getQuantileType() const {
