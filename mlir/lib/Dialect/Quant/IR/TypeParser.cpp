@@ -323,8 +323,6 @@ static Type parseUniformType(DialectAsmParser &parser, bool isQuantile) {
     if (!quantileType) {
       return nullptr;
     }
-    // mlir::emitRemark(parser.getEncodedSourceLoc(parser.getCurrentLocation()))
-    //     << "Here Here " << quantileType;
   }
 
   // Expressed type.
@@ -407,15 +405,6 @@ static Type parseUniformType(DialectAsmParser &parser, bool isQuantile) {
     if (isPerAxis) {
       ArrayRef<double> scalesRef(scales.begin(), scales.end());
       ArrayRef<int64_t> zeroPointsRef(zeroPoints.begin(), zeroPoints.end());
-
-      //   mlir::emitRemark(parser.getEncodedSourceLoc(parser.getCurrentLocation()))
-      //       << "storageType: " << storageType
-      //       << ", quantileType: " << quantileType
-      //       << ", expressedType: " << expressedType
-      //       << ", quantilesRef: " << quantilesRef << ", scalesRef: " <<
-      //       scalesRef
-      //       << ", zeroPointsRef: " << zeroPointsRef
-      //       << ", quantizedDimension: " << quantizedDimension;
 
       return parser.getChecked<QuantileQuantizedPerAxisType>(
           typeFlags, storageType, quantileType, expressedType, quantilesRef,

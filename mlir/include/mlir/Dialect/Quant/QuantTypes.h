@@ -16,7 +16,6 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Types.h"
 #include "llvm/Support/MathExtras.h"
-#include <llvm/Support/Casting.h>
 
 namespace mlir {
 namespace quant {
