@@ -202,8 +202,8 @@ func.func @parse() -> !qalias {
 
 // -----
 // Negative scale checking
-// CHECK: !quant.uniform<i8:f32, {-2.000000e+02,-9.987200e-01:120}>
-!qalias = !quant.uniform<i8:f32, {-2.0e+2,-0.99872:120}>
+// CHECK: !quant.uniform<i8:f32, -2.000000e+02>
+!qalias = !quant.uniform<i8:f32, -2.0e+2>
 func.func @parse() -> !qalias {
   %0 = "foo"() : () -> !qalias
   return %0 : !qalias
