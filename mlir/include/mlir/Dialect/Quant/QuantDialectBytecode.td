@@ -84,6 +84,7 @@ def UniformQuantizedPerAxisType: DialectType<(type
 def QuantileQuantizedType: DialectType<(type
   VarInt:$flags,
   Type:$storageType,
+  Type:$quantileType,
   Type:$expressedType,
   Array<DoubleAPFloatList>:$quantiles,
   DoubleAPFloat:$scale,
@@ -95,6 +96,7 @@ def QuantileQuantizedType: DialectType<(type
 def QuantileQuantizedPerAxisType: DialectType<(type
   VarInt:$flags,
   Type:$storageType,
+  Type:$quantileType,
   Type:$expressedType,
   VarInt:$quantizedDimension,
   SignedVarInt:$storageTypeMin,
@@ -105,7 +107,7 @@ def QuantileQuantizedPerAxisType: DialectType<(type
 )> {
   // Note: builder order differs from bytecode.
   let cBuilder = [{
-      get<$_resultType>(context, flags, storageType, expressedType, quantiles, scales,
+      get<$_resultType>(context, flags, storageType, quantileType, expressedType, quantiles, scales,
         zeroPoints, quantizedDimension, storageTypeMin, storageTypeMax)
   }];
 }
