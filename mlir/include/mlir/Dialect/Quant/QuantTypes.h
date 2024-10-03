@@ -397,7 +397,8 @@ public:
 };
 
 /// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
-/// look up table array of quantile values.
+/// look up table array of quantile values. The type of the data in the look up table is determined by
+/// the quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
@@ -463,7 +464,8 @@ public:
 };
 
 /// Represents per-axis QuantileQuantizedType (also known as per-channel
-/// quantization).
+/// quantization). The type of the data in the look up table is determined by the
+/// quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:
