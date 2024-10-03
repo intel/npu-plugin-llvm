@@ -255,15 +255,17 @@ struct UniformQuantizedPerAxisTypeStorage : public QuantizedTypeStorage {
 
 struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
   struct KeyTy : public UniformQuantizedTypeStorage::KeyTy {
-    KeyTy(unsigned flags, Type storageType, Type expressedType,
-          ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
-          int64_t storageTypeMin, int64_t storageTypeMax)
+    KeyTy(unsigned flags, Type storageType, Type quantileType,
+          Type expressedType, ArrayRef<double> quantiles, double scale,
+          int64_t zeroPoint, int64_t storageTypeMin, int64_t storageTypeMax)
         : UniformQuantizedTypeStorage::KeyTy(flags, storageType, expressedType,
                                              scale, zeroPoint, storageTypeMin,
                                              storageTypeMax),
-          quantiles(quantiles) {}
+          quantileType(quantileType), quantiles(quantiles) {}
 
+    Type quantileType;
     ArrayRef<double> quantiles;
+    Type getQuantileType() const { return quantileType; }
     ArrayRef<double> getQuantiles() const { return quantiles; }
 
     // Check for equality of two structures that share KeyTy data members
@@ -271,6 +273,7 @@ struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
     template <typename T, typename U>
     static bool genericIsEqual(const T &lhs, const U &rhs) {
       return UniformQuantizedTypeStorage::KeyTy::genericIsEqual(lhs, rhs) &&
+             lhs.getQuantileType() == rhs.getQuantileType() &&
              lhs.getQuantiles() == rhs.getQuantiles();
     }
 
@@ -283,14 +286,15 @@ struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
       int64_t *quantilesCast = llvm::bit_cast<int64_t *>(quantiles.data());
       ArrayRef<int64_t> quantilesBits(quantilesCast, quantiles.size());
       return llvm::hash_combine(
-          flags, storageType, expressedType,
+          flags, storageType, quantileType, expressedType,
           llvm::hash_combine_range(quantilesBits.begin(), quantilesBits.end()),
           scaleBits, zeroPoint, storageTypeMin, storageTypeMax);
     }
   };
 
   QuantileQuantizedTypeStorage(const KeyTy &key, ArrayRef<double> quantiles)
-      : UniformQuantizedTypeStorage(key), quantilesElements(quantiles.data()),
+      : UniformQuantizedTypeStorage(key), quantileType(key.getQuantileType()),
+        quantilesElements(quantiles.data()),
         quantilesParamsSize(quantiles.size()) {}
 
   bool operator==(const KeyTy &key) const {
@@ -307,10 +311,13 @@ struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
 
   static unsigned hashKey(const KeyTy &key) { return key.getHashValue(); }
 
+  Type getQuantileType() const { return quantileType; }
+
   ArrayRef<double> getQuantiles() const {
     return ArrayRef<double>(quantilesElements, quantilesParamsSize);
   }
 
+  Type quantileType;
   const double *quantilesElements;
   unsigned quantilesParamsSize;
 };
@@ -318,16 +325,19 @@ struct QuantileQuantizedTypeStorage : public UniformQuantizedTypeStorage {
 struct QuantileQuantizedPerAxisTypeStorage
     : public UniformQuantizedPerAxisTypeStorage {
   struct KeyTy : public UniformQuantizedPerAxisTypeStorage::KeyTy {
-    KeyTy(unsigned flags, Type storageType, Type expressedType,
-          ArrayRef<double> quantiles, ArrayRef<double> scales,
-          ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
-          int64_t storageTypeMin, int64_t storageTypeMax)
+    KeyTy(unsigned flags, Type storageType, Type quantileType,
+          Type expressedType, ArrayRef<double> quantiles,
+          ArrayRef<double> scales, ArrayRef<int64_t> zeroPoints,
+          int32_t quantizedDimension, int64_t storageTypeMin,
+          int64_t storageTypeMax)
         : UniformQuantizedPerAxisTypeStorage::KeyTy(
               flags, storageType, expressedType, scales, zeroPoints,
               quantizedDimension, storageTypeMin, storageTypeMax),
-          quantiles(quantiles) {}
+          quantileType(quantileType), quantiles(quantiles) {}
 
+    Type quantileType;
     ArrayRef<double> quantiles;
+    Type getQuantileType() const { return quantileType; }
     ArrayRef<double> getQuantiles() const { return quantiles; }
 
     // Check for equality of two structures that share KeyTy data members
@@ -336,6 +346,7 @@ struct QuantileQuantizedPerAxisTypeStorage
     static bool genericIsEqual(const T &lhs, const U &rhs) {
       return UniformQuantizedPerAxisTypeStorage::KeyTy::genericIsEqual(lhs,
                                                                        rhs) &&
+             lhs.getQuantileType() == rhs.getQuantileType() &&
              lhs.getQuantiles() == rhs.getQuantiles();
     }
 
@@ -349,7 +360,7 @@ struct QuantileQuantizedPerAxisTypeStorage
       int64_t *quantilesCast = llvm::bit_cast<int64_t *>(quantiles.data());
       ArrayRef<int64_t> quantilesBits(quantilesCast, quantiles.size());
       return llvm::hash_combine(
-          flags, storageType, expressedType,
+          flags, storageType, quantileType, expressedType,
           llvm::hash_combine_range(quantilesBits.begin(), quantilesBits.end()),
           llvm::hash_combine_range(scalesBits.begin(), scalesBits.end()),
           llvm::hash_combine_range(zeroPoints.begin(), zeroPoints.end()),
@@ -365,6 +376,7 @@ struct QuantileQuantizedPerAxisTypeStorage
                                       ArrayRef<double> scales,
                                       ArrayRef<int64_t> zeroPoints)
       : UniformQuantizedPerAxisTypeStorage(key, scales, zeroPoints),
+        quantileType(key.getQuantileType()),
         quantilesElements(quantiles.data()),
         quantilesParamsSize(quantiles.size()) {}
 
@@ -384,10 +396,13 @@ struct QuantileQuantizedPerAxisTypeStorage
 
   static unsigned hashKey(const KeyTy &key) { return key.getHashValue(); }
 
+  Type getQuantileType() const { return quantileType; }
+
   ArrayRef<double> getQuantiles() const {
     return ArrayRef<double>(quantilesElements, quantilesParamsSize);
   }
 
+  Type quantileType;
   const double *quantilesElements;
   unsigned quantilesParamsSize;
 }; // namespace detail
