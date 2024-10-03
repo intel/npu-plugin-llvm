@@ -67,18 +67,38 @@ def quant_UniformQuantizedType :
                 CPred<"::llvm::isa<UniformQuantizedType>($_self)">,
                 "UniformQuantizedType">;
 
+// An implementation of UniformQuantizedPerAxisType.
+def quant_UniformQuantizedPerAxisType :
+    DialectType<Quantization_Dialect,
+                CPred<"::llvm::isa<::mlir::quant::UniformQuantizedPerAxisType>($_self)">,
+                "UniformQuantizedPerAxisType">;
+
 // An implementation of QuantileQuantizedType.
 def quant_QuantileQuantizedType :
     DialectType<Quantization_Dialect,
                 CPred<"::llvm::isa<QuantileQuantizedType>($_self)">,
                 "QuantileQuantizedType">;
 
+// An implementation of QuantileQuantizedPerAxisType.
+def quant_QuantileQuantizedPerAxisType :
+    DialectType<Quantization_Dialect,
+                CPred<"::llvm::isa<QuantileQuantizedPerAxisType>($_self)">,
+                "QuantileQuantizedPerAxisType">;
+
 // Predicate for detecting a container or primitive of UniformQuantizedType.
 def quant_UniformQuantizedValueType :
     quant_TypedPrimitiveOrContainer<quant_UniformQuantizedType>;
 
+// Predicate for detecting a container or primitive of UniformQuantizedPerAxisType.
+def quant_UniformQuantizedPerAxisValueType :
+    quant_TypedPrimitiveOrContainer<quant_UniformQuantizedPerAxisType>;
+
 // Predicate for detecting a container or primitive of QuantileQuantizedType.
 def quant_QuantileQuantizedValueType :
     quant_TypedPrimitiveOrContainer<quant_QuantileQuantizedType>;
+
+// Predicate for detecting a container or primitive of QuantileQuantizedPerAxisType.
+def quant_QuantileQuantizedPerAxisValueType :
+    quant_TypedPrimitiveOrContainer<quant_QuantileQuantizedPerAxisType>;
 
 #endif // DIALECT_QUANT_QUANT_OPS_BASE_
