@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt requirements.txt.in
 #
-certifi==2023.7.22
+certifi==2024.7.4
     # via
     #   -r requirements.txt.in
     #   requests
@@ -14,7 +14,7 @@ cffi==1.15.1
     #   pynacl
 charset-normalizer==2.1.1
     # via requests
-cryptography==42.0.4
+cryptography==43.0.1
     # via pyjwt
 deprecated==1.2.13
     # via pygithub
