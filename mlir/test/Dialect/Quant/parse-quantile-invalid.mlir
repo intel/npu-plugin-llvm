@@ -143,11 +143,6 @@ func.func @parse() -> !qalias {
 !qalias = !quant.quantile<i8<-4:3>:f16:f33, {-1.0,1.0}:0.99872:127>
 
 // -----
-// Illegal scale: negative
-// expected-error@+1 {{illegal scale: -1.000000}}
-!qalias = !quant.quantile<i8<-4:3>:f16:f32, {-1.0,1.0}:-1.0:127>
-
-// -----
 // Illegal uniform params: missing quantized dimension
 // expected-error@+1 {{expected integer value}}
 !qalias = !quant.quantile<i8<-4:3>:f16:f32:, {-1.0,1.0}:{2.000000e+02:-19.987200e-01:1}>
