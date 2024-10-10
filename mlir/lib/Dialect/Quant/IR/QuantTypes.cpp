@@ -330,11 +330,8 @@ LogicalResult UniformQuantizedType::verifyInvariants(
     return emitError() << "expressed type must be floating point";
 
   // Verify scale.
-  double minScale = getMinScale(expressedType);
-  double maxScale = getMaxScale(expressedType);
-  if (scale < minScale || scale > maxScale)
-    return emitError() << "scale out of expressed type range [" << minScale
-                       << ", " << maxScale << "]";
+  if (std::isinf(scale) || std::isnan(scale))
+    return emitError() << "illegal scale: " << scale;
 
   return success();
 }
@@ -398,12 +395,9 @@ LogicalResult UniformQuantizedPerAxisType::verifyInvariants(
                        << scales.size() << ", " << zeroPoints.size();
 
   // Verify scale.
-  double minScale = getMinScale(expressedType);
-  double maxScale = getMaxScale(expressedType);
   for (double scale : scales) {
-    if (scale < minScale || scale > maxScale)
-      return emitError() << "scale out of expressed type range [" << minScale
-                         << ", " << maxScale << "]";
+    if (std::isinf(scale) || std::isnan(scale))
+      return emitError() << "illegal scale: " << scale;
   }
 
   // Verify quantized dimension.
