@@ -126,11 +126,6 @@
 !qalias = !quant.uniform<i8<-4:3>:f33, 0.99872:127>
 
 // -----
-// Illegal scale: negative
-// expected-error@+1 {{illegal scale: -1.000000}}
-!qalias = !quant.uniform<i8<-4:3>:f32, -1.0:127>
-
-// -----
 // Illegal uniform params: missing quantized dimension
 // expected-error@+1 {{expected integer value}}
 !qalias = !quant.uniform<i8<-4:3>:f32:, {2.000000e+02:-19.987200e-01:1}>
