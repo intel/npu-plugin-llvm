@@ -28,6 +28,15 @@ func.func @parse() -> !qalias {
 }
 
 // -----
+// Illegal quantile array size (per axis type)
+// expected-error@+1 {{quantiles array size needs to be equal to 2^(bit_size(storageType)), or (storageTypeMax - storageTypeMin + 1) when max and min differ from the type limits; expected: 256, found: 2}}
+!qalias = !quant.quantile<i8:f16:f32:1, {-1.0,1.0}:{-2.0e+2,-0.99872:120}>
+func.func @parse() -> !qalias {
+  %0 = "foo"() : () -> !qalias
+  return %0 : !qalias
+}
+
+// -----
 // Unrecognized token: trailing
 // expected-error@+1 {{expected '>'}}
 !qalias = !quant.quantile<i8<-4:3>:f16:f32, {-1.0,1.0}:0.99872:127 23>

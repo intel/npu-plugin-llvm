@@ -540,7 +540,6 @@ LogicalResult QuantileQuantizedPerAxisType::verifyInvariants(
     return failure();
   }
 
-  const auto quantileArraySize = quantiles.size();
   unsigned typeWidth{};
   if (storageType.isa<IntegerType>()) {
     typeWidth = llvm::dyn_cast<IntegerType>(storageType).getWidth();
@@ -553,10 +552,17 @@ LogicalResult QuantileQuantizedPerAxisType::verifyInvariants(
                           "types, Float8E4M3FNType and Float8E5M2Type ";
   }
 
-  const size_t expectedSize = 1 << typeWidth;
+  const size_t storageTypeRange = storageTypeMax - storageTypeMin + 1;
+  const size_t typeWidthSize = 1 << typeWidth;
+  const size_t expectedSize =
+      (storageTypeRange < typeWidthSize) ? storageTypeRange : typeWidthSize;
+
+  const auto quantileArraySize = quantiles.size();
   if (quantileArraySize != expectedSize) {
     return emitError() << "quantiles array size needs to be equal to "
-                          "2^(bit_size(storageType)), expected: "
+                          "2^(bit_size(storageType)), or (storageTypeMax - "
+                          "storageTypeMin + 1) when max and min differ from "
+                          "the type limits; expected: "
                        << expectedSize << ", found: " << quantileArraySize;
   }
 
