@@ -1,0 +1,95 @@
+name: "Linux precommit"
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ "npu/release/18.x" ]
+  pull_request:
+    branches: [ "npu/release/18.x" ]
+  workflow_dispatch:
+    branches: [ "npu/release/18.x" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+
+jobs:
+  Build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      CMAKE_BUILD_TYPE: 'Release'
+      LLVM_ENABLE_ASSERTIONS: 'ON'
+      NPU_PLUGIN_LLVM_PROJECT: llvm
+      NPU_PLUGIN_LLVM_PROJECT_BUILD_DIR: llvm/build
+      NPU_PLUGIN_LLVM_PROJECT_INSTALL_DIR: llvm/install
+    steps:
+      - name: Clone NPU Plugin LLVM sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: 'true'
+      - name: Print system info
+        run: |
+          # Install pre-requisites for Fedora
+          if [[ -e /etc/fedora-release ]]; then
+            yum update -y -q && yum install -y -q procps
+          fi
+          echo "System: ${{ runner.os }}"
+          echo "System Architecture: ${{ runner.arch }}"
+          echo "CPU Info: "; lscpu
+          echo "RAM Info: "; free -h --si
+          echo "MEMORY Info: "; df -h
+
+      - name: Configure CMake
+        run: |
+          cmake \
+            -B ${NPU_PLUGIN_LLVM_PROJECT_BUILD_DIR} \
+            -S ${NPU_PLUGIN_LLVM_PROJECT} \
+            -DCMAKE_INSTALL_PREFIX=${NPU_PLUGIN_LLVM_PROJECT_INSTALL_DIR} \
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+            -DLLVM_ENABLE_WARNINGS=OFF \
+            -DLLVM_ENABLE_BINDINGS=OFF \
+            -DLLVM_ENABLE_RTTI=ON \
+            -DLLVM_ENABLE_EH=ON \
+            -DLLVM_ENABLE_BACKTRACES=OFF \
+            -DLLVM_ENABLE_CRASH_OVERRIDES=OFF \
+            -DLLVM_ENABLE_PROJECTS="mlir" \
+            -DLLVM_ENABLE_ASSERTIONS=${LLVM_ENABLE_ASSERTIONS} \
+            -DLLVM_INCLUDE_TESTS=ON \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF \
+            -DLLVM_TARGETS_TO_BUILD="host" \
+            -DLLVM_ENABLE_TERMINFO=OFF \
+            -DLLVM_BUILD_EXAMPLES=OFF \
+            -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_BUILD_TOOLS=OFF \
+            -DLLVM_BUILD_UTILS=ON \
+            -DLLVM_INSTALL_UTILS=ON \
+
+      - name: Build
+        run: |
+          cmake \
+          --build ${NPU_PLUGIN_LLVM_PROJECT_BUILD_DIR} \
+          --config ${CMAKE_BUILD_TYPE} \
+          --parallel $(nproc)
+
+      - name: Test LLVM
+        run: |
+          cmake \
+          --build ${NPU_PLUGIN_LLVM_PROJECT_BUILD_DIR} \
+          --config ${CMAKE_BUILD_TYPE} \
+          --parallel $(nproc) \
+          --target check-llvm
+
+      - name: Test MLIR
+        run: |
+          cmake \
+          --build ${NPU_PLUGIN_LLVM_PROJECT_BUILD_DIR} \
+          --config ${CMAKE_BUILD_TYPE} \
+          --parallel $(nproc) \
+          --target check-mlir
