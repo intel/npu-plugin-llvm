@@ -523,10 +523,10 @@ static void printStorageType(QuantizedType type, DialectAsmPrinter &out) {
 static void printQuantileType(Type quantileType, DialectAsmPrinter &out) {
   if (auto intType = llvm::dyn_cast<IntegerType>(quantileType)) {
     const unsigned storageTypeWidth = intType.getWidth();
-    if (intType.isSigned()) {
-      out << ":i" << storageTypeWidth;
-    } else {
+    if (intType.isUnsigned()) {
       out << ":u" << storageTypeWidth;
+    } else {
+      out << ":i" << storageTypeWidth;
     }
   } else if (quantileType.isa<Float8E5M2Type>()) {
     out << ":f8E5M2";
