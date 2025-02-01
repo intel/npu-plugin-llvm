@@ -254,7 +254,17 @@ def quant_QuantizedScalarOrTensor :
 def quant_IntegerOrQuantizedScalarOrTensor :
     quant_ScalarOrTensorOf<quant_IntegerOrQuantizedType>;
 
+// An implementation of QuantileQuantizedType.
+def quant_QuantileQuantizedType :
+    DialectType<Quant_Dialect,
+                CPred<"::llvm::isa<QuantileQuantizedType>($_self)">,
+                "QuantileQuantizedType">;
 
+// An implementation of QuantileQuantizedPerAxisType.
+def quant_QuantileQuantizedPerAxisType :
+    DialectType<Quant_Dialect,
+                CPred<"::llvm::isa<QuantileQuantizedPerAxisType>($_self)">,
+                "QuantileQuantizedPerAxisType">;
 //===----------------------------------------------------------------------===//
 // Traits
 //===----------------------------------------------------------------------===//

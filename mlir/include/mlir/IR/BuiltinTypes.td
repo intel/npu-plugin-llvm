@@ -529,7 +529,8 @@ def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_MemRef : Builtin_Type<"MemRef", "memref", [
-    ShapedTypeInterface
+    ShapedTypeInterface,
+    BaseMemRefTypeInterface
   ], "BaseMemRefType"> {
   let summary = "Shaped reference to a region of memory";
   let description = [{
@@ -759,6 +760,7 @@ def Builtin_MemRef : Builtin_Type<"MemRef", "memref", [
     %A = alloc (%n)[%o] : <16x?xf32, #imapS>
     ```
   }];
+  
   let parameters = (ins
     ArrayRefParameter<"int64_t">:$shape,
     "Type":$elementType,
@@ -879,7 +881,7 @@ def Builtin_Opaque : Builtin_Type<"Opaque", "opaque"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_RankedTensor : Builtin_Type<"RankedTensor", "tensor", [
-    ShapedTypeInterface, ValueSemantics
+    ShapedTypeInterface, ValueSemantics, TensorTypeInterface
   ], "TensorType"> {
   let summary = "Multi-dimensional array with a fixed number of dimensions";
   let description = [{
@@ -1057,7 +1059,7 @@ def Builtin_Tuple : Builtin_Type<"Tuple", "tuple"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
-    ShapedTypeInterface
+    ShapedTypeInterface, BaseMemRefTypeInterface
   ], "BaseMemRefType"> {
   let summary = "Shaped reference, with unknown rank, to a region of memory";
   let description = [{
@@ -1135,7 +1137,7 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", "unranked_tensor", [
-    ShapedTypeInterface, ValueSemantics
+    ShapedTypeInterface, ValueSemantics, TensorTypeInterface
   ], "TensorType"> {
   let summary = "Multi-dimensional array with unknown dimensions";
   let description = [{

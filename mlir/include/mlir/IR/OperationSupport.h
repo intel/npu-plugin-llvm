@@ -1158,6 +1158,8 @@ public:
   /// the string size.
   OpPrintingFlags &elideLargeResourceString(int64_t largeResourceLimit = 64);
 
+  OpPrintingFlags &setAllowPrintingElementsAttrAsHex(bool allowHex = true);
+
   /// Enable or disable printing of debug information (based on `enable`). If
   /// 'prettyForm' is set to true, debug information is printed in a more
   /// readable 'pretty' form. Note: The IR generated with 'prettyForm' is not
@@ -1233,6 +1235,10 @@ private:
   /// is larger than the upper limit.
   int64_t elementsAttrHexElementLimit = 100;
 
+  // Allow printing DenseElementsAttrs with a hex string when the number of
+  // elements is large
+  bool allowPrintingHex : 1;
+  
   /// Print debug information.
   bool printDebugInfoFlag : 1;
   bool printDebugInfoPrettyFormFlag : 1;

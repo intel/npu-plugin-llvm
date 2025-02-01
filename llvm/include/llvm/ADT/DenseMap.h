@@ -336,6 +336,14 @@ public:
     decrementNumEntries();
     incrementNumTombstones();
   }
+  
+  value_type& FindAndConstruct(const KeyT &Key) {
+    BucketT *TheBucket;
+    if (LookupBucketFor(Key, TheBucket))
+      return *TheBucket;
+
+    return *InsertIntoBucket(TheBucket, Key);
+  }
 
   ValueT &operator[](const KeyT &Key) {
     BucketT *TheBucket;

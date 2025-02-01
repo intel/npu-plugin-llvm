@@ -188,4 +188,66 @@ def ShapedTypeInterface : TypeInterface<"ShapedType"> {
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// TensorTypeInterface
+//===----------------------------------------------------------------------===//
+
+def TensorTypeInterface : TypeInterface<"ITensorType", [
+      ShapedTypeInterface
+    ]
+  > {
+  let cppNamespace = "::mlir";
+  let description = [{
+    This interface provides a shared interface for ranked and unranked type
+    and customized tensor types.
+
+    This class attaches the ShapedTypeInterface to act as a mixin to
+    provide many useful utility functions.
+  }];
+
+  let extraClassDeclaration = [{
+    // Return true if the specified element type is ok in a tensor.
+    static bool isValidElementType(::mlir::Type type);
+  }];
+
+  let extraClassOf = [{
+    return $_type.hasTrait<::mlir::ITensorType::Trait>();
+  }];
+
+}
+
+//===----------------------------------------------------------------------===//
+// BaseMemRefTypeInterface
+//===----------------------------------------------------------------------===//
+
+def BaseMemRefTypeInterface : TypeInterface<"IBaseMemRefType", [
+      ShapedTypeInterface
+    ]
+  > {
+  let cppNamespace = "::mlir";
+  let description = [{
+    This interface provides a shared interface for ranked and unranked memref and
+    customized memref types.
+
+    This interface attaches the ShapedTypeInterface to act as a mixin to
+    provide many useful utility functions.
+  }];
+
+  let methods = [
+    InterfaceMethod<[{
+      Returns the memory space in which data referred to by this memref resides.
+    }],
+    "::mlir::Attribute", "getMemorySpace">,
+  ];
+
+  let extraClassDeclaration = [{
+    // Return true if the specified element type is ok in a memref.
+    static bool isValidElementType(::mlir::Type type);
+  }];
+
+  let extraClassOf = [{
+    return $_type.hasTrait<::mlir::IBaseMemRefType::Trait>();
+  }];
+}
+
 #endif // MLIR_IR_BUILTINTYPEINTERFACES_TD_

@@ -116,6 +116,16 @@ public:
   /// Return the raw output stream used by this printer.
   virtual raw_ostream &getStream() const;
 
+  /// Print a newline and indent the printer to the start of the current
+  /// operation.
+  virtual void printNewline();
+  
+  /// Increase indentation.
+  virtual void increaseIndent();
+  
+  /// Decrease indentation.
+  virtual void decreaseIndent();
+  
   /// Print the given floating point value in a stabilized form that can be
   /// roundtripped through the IR. This is the companion to the 'parseFloat'
   /// hook on the AsmParser.

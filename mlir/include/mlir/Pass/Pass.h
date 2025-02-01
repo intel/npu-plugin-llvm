@@ -297,6 +297,9 @@ protected:
   /// pass.
   void copyOptionValuesFrom(const Pass *other);
 
+  /// Copy the option values from 'other', which are PassPipeline options.
+  /// Here we copy only those options that have the same argument name.
+  void copyOptionValuesFrom(const detail::PassOptions &other);
 private:
   /// Out of line virtual method to ensure vtables and metadata are emitted to a
   /// single .o file.

@@ -255,6 +255,12 @@ OpPrintingFlags::elideLargeResourceString(int64_t largeResourceLimit) {
   return *this;
 }
 
+OpPrintingFlags &
+OpPrintingFlags::setAllowPrintingElementsAttrAsHex(bool allowHex) {
+  allowPrintingHex = allowHex;
+  return *this;
+}
+
 /// Enable printing of debug information. If 'prettyForm' is set to true,
 /// debug information is printed in a more readable 'pretty' form.
 OpPrintingFlags &OpPrintingFlags::enableDebugInfo(bool enable,
@@ -392,6 +398,18 @@ public:
 
   /// Returns the output stream of the printer.
   raw_ostream &getStream() { return os; }
+  /// Print a newline and indent the printer to the start of the current
+  /// operation.
+  void printNewline() {
+    os << newLine;
+    os.indent(currentIndent);
+  }
+
+  /// Increase indentation.
+  void increaseIndent() { currentIndent += indentWidth; }
+
+  /// Decrease indentation.
+  void decreaseIndent() { currentIndent -= indentWidth; }
 
   template <typename Container, typename UnaryFunctor>
   inline void interleaveComma(const Container &c, UnaryFunctor eachFn) const {
@@ -507,6 +525,12 @@ protected:
 
   /// A tracker for the number of new lines emitted during printing.
   NewLineCounter newLine;
+
+  /// The number of spaces used for indenting nested operations.
+  const static unsigned indentWidth = 2;
+
+  /// This is the current indentation level for nested structures.
+  unsigned currentIndent = 0;
 };
 } // namespace mlir
 
@@ -809,6 +833,9 @@ private:
 
   /// The following are hooks of `OpAsmPrinter` that are not necessary for
   /// determining potential aliases.
+  /*void printNewline() override {}
+  void increaseIndent() override {}
+  void decreaseIndent() override {}*/
   void printFloat(const APFloat &) override {}
   void printAffineMapOfSSAIds(AffineMapAttr, ValueRange) override {}
   void printAffineExprOfSSAIds(AffineExpr, ValueRange, ValueRange) override {}
@@ -962,6 +989,9 @@ private:
 
   /// The following are hooks of `DialectAsmPrinter` that are not necessary for
   /// determining potential aliases.
+  void printNewline() override {}
+  void increaseIndent() override {}
+  void decreaseIndent() override {}
   void printFloat(const APFloat &) override {}
   void printKeywordOrString(StringRef) override {}
   void printString(StringRef) override {}
@@ -2804,6 +2834,21 @@ AsmPrinter::~AsmPrinter() = default;
 raw_ostream &AsmPrinter::getStream() const {
   assert(impl && "expected AsmPrinter::getStream to be overriden");
   return impl->getStream();
+}
+
+void AsmPrinter::printNewline() {
+  assert(impl && "expected AsmPrinter::printNewLine to be overriden");
+  impl->printNewline();
+}
+
+void AsmPrinter::increaseIndent() {
+  assert(impl && "expected AsmPrinter::increaseIndent to be overriden");
+  impl->increaseIndent();
+}
+
+void AsmPrinter::decreaseIndent() {
+  assert(impl && "expected AsmPrinter::decreaseIndent to be overriden");
+  impl->decreaseIndent();
 }
 
 /// Print the given floating point value in a stablized form.

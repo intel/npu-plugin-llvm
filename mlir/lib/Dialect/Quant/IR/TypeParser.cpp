@@ -352,6 +352,24 @@ static void printStorageType(QuantizedType type, DialectAsmPrinter &out) {
   }
 }
 
+static void printQuantileType(Type quantileType, DialectAsmPrinter &out) {
+  if (auto intType = llvm::dyn_cast<IntegerType>(quantileType)) {
+    const unsigned storageTypeWidth = intType.getWidth();
+    if (intType.isUnsigned()) {
+      out << ":u" << storageTypeWidth;
+    } else {
+      out << ":i" << storageTypeWidth;
+    }
+  } else if (quantileType.isa<Float8E5M2Type>()) {
+    out << ":f8E5M2";
+  } else if (quantileType.isa<Float8E4M3FNType>()) {
+    out << ":f8E4M3FN";
+  } else {
+    // Float types
+    out << ":" << quantileType;
+  }
+}
+
 static void printQuantParams(double scale, int64_t zeroPoint,
                              DialectAsmPrinter &out) {
   out << scale;
@@ -405,6 +423,56 @@ static void printUniformQuantizedPerAxisType(UniformQuantizedPerAxisType type,
   out << "}>";
 }
 
+/// Helper that prints a QuantileQuantizedType.
+static void printQuantileQuantizedType(QuantileQuantizedType type,
+                                       DialectAsmPrinter &out) {
+  out << "quantile<";
+  printStorageType(type, out);
+  printQuantileType(type.getQuantileType(), out);
+  out << ":" << type.getExpressedType() << ", ";
+
+  // scheme specific parameters
+  ArrayRef<double> quantiles = type.getQuantiles();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, quantiles.size()), out,
+      [&](size_t index) { out << quantiles[index]; }, ",");
+  out << "}:";
+
+  printQuantParams(type.getScale(), type.getZeroPoint(), out);
+  out << ">";
+}
+
+/// Helper that prints a QuantileQuantizedPerAxisType.
+static void printQuantileQuantizedPerAxisType(QuantileQuantizedPerAxisType type,
+                                              DialectAsmPrinter &out) {
+  out << "quantile<";
+  printStorageType(type, out);
+  printQuantileType(type.getQuantileType(), out);
+  out << ":" << type.getExpressedType() << ":";
+  out << type.getQuantizedDimension();
+  out << ", ";
+
+  // scheme specific parameters
+  ArrayRef<double> quantiles = type.getQuantiles();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, quantiles.size()), out,
+      [&](size_t index) { out << quantiles[index]; }, ",");
+  out << "}:";
+
+  ArrayRef<double> scales = type.getScales();
+  ArrayRef<int64_t> zeroPoints = type.getZeroPoints();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, scales.size()), out,
+      [&](size_t index) {
+        printQuantParams(scales[index], zeroPoints[index], out);
+      },
+      ",");
+  out << "}>";
+}
+
 /// Helper that prints a CalibratedQuantizedType.
 static void printCalibratedQuantizedType(CalibratedQuantizedType type,
                                          DialectAsmPrinter &out) {
@@ -417,6 +485,10 @@ static void printCalibratedQuantizedType(CalibratedQuantizedType type,
 void QuantDialect::printType(Type type, DialectAsmPrinter &os) const {
   if (auto anyType = llvm::dyn_cast<AnyQuantizedType>(type))
     printAnyQuantizedType(anyType, os);
+  else if (auto uniformType = llvm::dyn_cast<QuantileQuantizedType>(type))
+    printQuantileQuantizedType(uniformType, os);
+  else if (auto perAxisType = llvm::dyn_cast<QuantileQuantizedPerAxisType>(type))
+    printQuantileQuantizedPerAxisType(perAxisType, os);
   else if (auto uniformType = llvm::dyn_cast<UniformQuantizedType>(type))
     printUniformQuantizedType(uniformType, os);
   else if (auto perAxisType = llvm::dyn_cast<UniformQuantizedPerAxisType>(type))
