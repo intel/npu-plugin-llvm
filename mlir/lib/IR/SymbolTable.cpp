@@ -117,7 +117,7 @@ walkSymbolTable(Operation *op,
 /// Build a symbol table with the symbols within the given operation.
 SymbolTable::SymbolTable(Operation *symbolTableOp)
     : symbolTableOp(symbolTableOp) {
-  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>() &&
+  assert((symbolTableOp->hasTrait<OpTrait::SymbolTable>() || symbolTableOp->hasTrait<OpTrait::SymbolContainer>()) &&
          "expected operation to have SymbolTable trait");
   assert(symbolTableOp->getNumRegions() == 1 &&
          "expected operation to have a single region");
