@@ -57,7 +57,8 @@ collectValidReferencesFor(Operation *symbol, StringAttr symbolName,
       StringAttr::get(ctx, SymbolTable::getSymbolAttrName());
   do {
     // Each parent of 'symbol' should define a symbol table.
-    if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>())
+    if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>() &&
+          !symbolTableOp->hasTrait<OpTrait::SymbolContainer>())
       return failure();
     // Each parent of 'symbol' should also be a symbol.
     StringAttr symbolTableName = getNameIfSymbol(symbolTableOp, symbolNameId);
@@ -384,7 +385,7 @@ void SymbolTable::walkSymbolTables(
 /// was found.
 Operation *SymbolTable::lookupSymbolIn(Operation *symbolTableOp,
                                        StringAttr symbol) {
-  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>());
+  assert(symbolTableOp->hasTrait<OpTrait::SymbolTable>() || symbolTableOp->hasTrait<OpTrait::SymbolContainer>());
   Region &region = symbolTableOp->getRegion(0);
   if (region.empty())
     return nullptr;
@@ -425,7 +426,7 @@ static LogicalResult lookupSymbolInImpl(
     return success();
 
   // Verify that the root is also a symbol table.
-  if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>())
+  if (!symbolTableOp->hasTrait<OpTrait::SymbolTable>() && !symbolTableOp->hasTrait<OpTrait::SymbolContainer>())
     return failure();
 
   // Otherwise, lookup each of the nested non-leaf references and ensure that
@@ -702,7 +703,7 @@ static SmallVector<SymbolScope, 2> collectSymbolScopes(Operation *symbol,
     Operation *limitIt = symbol->getParentOp();
     for (size_t i = 0, e = references.size(); i != e;
          ++i, limitIt = limitIt->getParentOp()) {
-      assert(limitIt->hasTrait<OpTrait::SymbolTable>());
+      assert(limitIt->hasTrait<OpTrait::SymbolTable>() || limitIt->hasTrait<OpTrait::SymbolContainer>());
       scopes.push_back({references[i], &limitIt->getRegion(0)});
     }
     return scopes;
