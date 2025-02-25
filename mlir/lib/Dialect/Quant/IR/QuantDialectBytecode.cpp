@@ -14,6 +14,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 
