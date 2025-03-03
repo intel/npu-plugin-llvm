@@ -31,6 +31,7 @@
 #include "UnusedParametersCheck.h"
 #include "UnusedUsingDeclsCheck.h"
 #include "UseAnonymousNamespaceCheck.h"
+#include "UseFreeFunctionVariantsCheck.h"
 
 namespace clang::tidy {
 namespace misc {
@@ -78,6 +79,8 @@ public:
         "misc-unused-using-decls");
     CheckFactories.registerCheck<UseAnonymousNamespaceCheck>(
         "misc-use-anonymous-namespace");
+    CheckFactories.registerCheck<UseFreeFunctionVariantsCheck>(
+        "misc-use-free-function-variants");
   }
 };
 
