@@ -300,8 +300,6 @@ public:
                               int64_t zeroPoint, int64_t storageTypeMin,
                               int64_t storageTypeMax);
 
-  static bool classof(mlir::Type type);
-
   /// Gets the scale term. The scale designates the difference between the real
   /// values corresponding to consecutive quantized values differing by 1.
   double getScale() const;
@@ -365,8 +363,6 @@ public:
                               int32_t quantizedDimension,
                               int64_t storageTypeMin, int64_t storageTypeMax);
 
-  static bool classof(mlir::Type type);
-
   /// Gets the quantization scales. The scales designate the difference between
   /// the real values corresponding to consecutive quantized values differing
   /// by 1. The ith scale corresponds to the ith slice in the
@@ -401,8 +397,9 @@ public:
 };
 
 /// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
-/// look up table array of quantile values. The type of the data in the look up table is determined by
-/// the quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// look up table array of quantile values. The type of the data in the look up
+/// table is determined by the quantileType member: supported quantileType types
+/// are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
@@ -468,8 +465,9 @@ public:
 };
 
 /// Represents per-axis QuantileQuantizedType (also known as per-channel
-/// quantization). The type of the data in the look up table is determined by the
-/// quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// quantization). The type of the data in the look up table is determined by
+/// the quantileType member: supported quantileType types are
+/// integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:

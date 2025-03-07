@@ -9,6 +9,7 @@
 #include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "TypeDetail.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
+#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
@@ -52,7 +53,6 @@ QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
   bool isSigned =
       (flags & QuantizationFlags::Signed) == QuantizationFlags::Signed;
 
-  // Integral storage type width checks
   if (storageType.isa<IntegerType>()) {
     unsigned integralWidth =
         llvm::dyn_cast<IntegerType>(storageType).getWidth();
@@ -61,7 +61,8 @@ QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
       return emitError() << "illegal storage type size: " << integralWidth;
   }
 
-  int64_t defaultMin, defaultMax;
+  int64_t defaultMin = std::numeric_limits<int64_t>::min();
+  int64_t defaultMax = std::numeric_limits<int64_t>::max();
   if (storageType.isa<IntegerType>()) {
     const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
     defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
@@ -77,7 +78,6 @@ QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
                           "types, Float8E4M3FNType and Float8E5M2Type ";
   }
 
-  // Verify storageTypeMin and storageTypeMax.
   if (storageTypeMax - storageTypeMin <= 0 || storageTypeMin < defaultMin ||
       storageTypeMax > defaultMax) {
     return emitError() << "illegal storage min and storage max: ("
@@ -295,7 +295,6 @@ UniformQuantizedType UniformQuantizedType::get(unsigned flags, Type storageType,
   return Base::get(storageType.getContext(), flags, storageType, expressedType,
                    scale, zeroPoint, storageTypeMin, storageTypeMax);
 }
-
 UniformQuantizedType UniformQuantizedType::getChecked(
     function_ref<InFlightDiagnostic()> emitError, unsigned flags,
     Type storageType, Type expressedType, double scale, int64_t zeroPoint,
@@ -330,16 +329,11 @@ LogicalResult UniformQuantizedType::verify(
   double maxScale = getMaxScale(expressedType);
   if (std::isinf(scale) || std::isnan(scale))
     return emitError() << "illegal scale: " << scale;
-  if (scale < minScale || scale > maxScale)
+  if (scale > maxScale)
     return emitError() << "scale out of expressed type range [" << minScale
                        << ", " << maxScale << "]";
 
   return success();
-}
-
-bool UniformQuantizedType::classof(mlir::Type type) {
-  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedType>() ||
-         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedType>();
 }
 
 double UniformQuantizedType::getScale() const { return getImpl()->scale; }
@@ -397,10 +391,11 @@ LogicalResult UniformQuantizedPerAxisType::verify(
   // Verify scale.
   double minScale = getMinScale(expressedType);
   double maxScale = getMaxScale(expressedType);
+
   for (double scale : scales) {
     if (std::isinf(scale) || std::isnan(scale))
       return emitError() << "illegal scale: " << scale;
-    if (scale < minScale || scale > maxScale)
+    if (scale > maxScale)
       return emitError() << "scale out of expressed type range [" << minScale
                          << ", " << maxScale << "]";
   }
@@ -410,11 +405,6 @@ LogicalResult UniformQuantizedPerAxisType::verify(
     return emitError() << "illegal quantized dimension: " << quantizedDimension;
 
   return success();
-}
-
-bool UniformQuantizedPerAxisType::classof(mlir::Type type) {
-  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedPerAxisType>() ||
-         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedPerAxisType>();
 }
 
 ArrayRef<double> UniformQuantizedPerAxisType::getScales() const {

@@ -142,19 +142,10 @@
 !qalias = !quant.uniform<i8:f32:-1, {2.0,3.0:1}>
 
 // -----
-// Scale f16 underflow
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8:f16, 5.8e-8>
-
-// -----
 // Scale f16 overflow
 // expected-error@+1 {{scale out of expressed type range}}
 !qalias = !quant.uniform<i8:f16, 6.6e4>
 
-// -----
-// Scale f16 underflow in per-axis quantization
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8:f16:1, {2.0,5.8e-8}>
 
 // -----
 // Scale f16 overflow in per-axis quantization
