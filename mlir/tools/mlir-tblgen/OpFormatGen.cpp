@@ -845,7 +845,7 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
       }
     } else {
       body << "  ::mlir::OpAsmParser::UnresolvedOperand " << name
-           << "RawOperands = { };\n"
+           << "RawOperand{};\n"
            << "  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> "
            << name << "Operands(&" << name << "RawOperand, 1);";
     }
@@ -882,10 +882,11 @@ static void genElementParserStorage(FormatElement *element, const Operator &op,
     if (lengthKind != ArgumentLengthKind::Single)
       body << "  ::llvm::SmallVector<::mlir::Type, 1> " << name << "Types;\n";
     else
-      body << llvm::formatv("  ::mlir::Type {0}RawTypes = {{ };\n", name)
-           << llvm::formatv(
-                  "  ::llvm::ArrayRef<::mlir::Type> {0}Types({0}RawTypes);\n",
-                  name);
+      body
+          << llvm::formatv("  ::mlir::Type {0}RawType{{};\n", name)
+          << llvm::formatv(
+                 "  ::llvm::ArrayRef<::mlir::Type> {0}Types(&{0}RawType, 1);\n",
+                 name);
   } else if (auto *dir = dyn_cast<FunctionalTypeDirective>(element)) {
     ArgumentLengthKind ignored;
     body << "  ::llvm::ArrayRef<::mlir::Type> "

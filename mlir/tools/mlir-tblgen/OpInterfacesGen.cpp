@@ -179,18 +179,13 @@ static void emitInterfaceDefMethods(StringRef interfaceQualName,
                                     raw_ostream &os, bool isOpInterface) {
   for (auto &method : interface.getMethods()) {
     emitInterfaceMethodDoc(method, os);
-    auto returnType = method.getReturnType();
-    emitCPPType(returnType, os);
+    emitCPPType(method.getReturnType(), os);
     os << interfaceQualName << "::";
     emitMethodNameAndArgs(method, os, valueType, /*addThisArg=*/false,
                           /*addConst=*/!isOpInterface);
 
     // Forward to the method on the concrete operation type.
-    os << " {\n      ";
-    if (returnType != "void") {
-      os << "return ";
-    }
-    os << implValue << "->" << method.getName() << '(';
+    os << " {\n      return " << implValue << "->" << method.getName() << '(';
     if (!method.isStatic()) {
       os << implValue << ", ";
       os << (isOpInterface ? "getOperation()" : "*this");
@@ -350,8 +345,7 @@ void InterfaceGenerator::emitModelMethodsDef(const Interface &interface) {
 
   for (auto &method : interface.getMethods()) {
     os << "template<typename " << valueTemplate << ">\n";
-    auto returnType = method.getReturnType();
-    emitCPPType(returnType, os);
+    emitCPPType(method.getReturnType(), os);
     os << "detail::" << interface.getName() << "InterfaceTraits::Model<"
        << valueTemplate << ">::";
     emitMethodNameAndArgs(method, os, valueType,
@@ -370,15 +364,10 @@ void InterfaceGenerator::emitModelMethodsDef(const Interface &interface) {
     }
 
     // Forward to the method on the concrete operation type.
-    if (returnType != "void") {
-      os << "return ";
-    }
-
-    if (method.isStatic()) {
-      os << valueTemplate << "::";
-    } else {
-      os << tblgen::tgfmt("$_self.", &nonStaticMethodFmt);
-    }
+    if (method.isStatic())
+      os << "return " << valueTemplate << "::";
+    else
+      os << tblgen::tgfmt("return $_self.", &nonStaticMethodFmt);
 
     // Add the arguments to the call.
     os << method.getName() << '(';
@@ -390,8 +379,7 @@ void InterfaceGenerator::emitModelMethodsDef(const Interface &interface) {
 
   for (auto &method : interface.getMethods()) {
     os << "template<typename " << valueTemplate << ">\n";
-    auto returnType = method.getReturnType();
-    emitCPPType(returnType, os);
+    emitCPPType(method.getReturnType(), os);
     os << "detail::" << interface.getName() << "InterfaceTraits::FallbackModel<"
        << valueTemplate << ">::";
     emitMethodNameAndArgs(method, os, valueType,
@@ -400,15 +388,11 @@ void InterfaceGenerator::emitModelMethodsDef(const Interface &interface) {
     os << " {\n  ";
 
     // Forward to the method on the concrete Model implementation.
-    if (returnType != "void") {
-      os << "return ";
-    }
+    if (method.isStatic())
+      os << "return " << valueTemplate << "::";
+    else
+      os << "return static_cast<const " << valueTemplate << " *>(impl)->";
 
-    if (method.isStatic()) {
-      os << valueTemplate << "::";
-    } else {
-      os << "static_cast<const " << valueTemplate << " *>(impl)->";
-    }
     // Add the arguments to the call.
     os << method.getName() << '(';
     if (!method.isStatic())
@@ -446,7 +430,7 @@ void InterfaceGenerator::emitModelMethodsDef(const Interface &interface) {
     if (!method.isStatic())
       os << " const";
 
-    os << " {\n  ";
+    os << " {\n";
 
     // Use the empty context for static methods.
     tblgen::FmtContext ctx;
