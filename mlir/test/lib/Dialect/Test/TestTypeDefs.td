@@ -421,9 +421,10 @@ def TestMemrefType : Test_Type<"TestMemref", [BaseMemRefTypeInterface]> {
   let parameters = (ins
     ArrayRefParameter<"int64_t">:$shape,
     "mlir::Type":$elementType,
-    DefaultValuedParameter<"mlir::Attribute", "nullptr">:$memSpace
+    DefaultValuedParameter<"mlir::Attribute", "nullptr">:$memSpace,
+    DefaultValuedParameter<"unsigned", "0">:$memSpaceAsInt
   );
-  let assemblyFormat = "`<` `[` $shape `]` `,` $elementType (`,` $memSpace^)? `>`";
+  let assemblyFormat = "`<` `[` $shape `]` `,` $elementType (`,` $memSpace^)? (`,` $memSpaceAsInt^)? `>`";
 
   let extraClassDeclaration = [{
     // ShapedTypeInterface:
@@ -431,12 +432,15 @@ def TestMemrefType : Test_Type<"TestMemref", [BaseMemRefTypeInterface]> {
       return true;
     }
     mlir::ShapedType cloneWith(std::optional<llvm::ArrayRef<int64_t>> shape, mlir::Type elementType) const {
-      return test::TestMemrefType::get(getContext(), shape.value_or(getShape()), elementType, getMemSpace());
+      return test::TestMemrefType::get(getContext(), shape.value_or(getShape()), elementType, getMemSpace(), getMemSpaceAsInt());
     }
 
     // BaseMemRefTypeInterface:
     mlir::Attribute getMemorySpace() const {
       return getMemSpace();
+    }
+    unsigned getMemorySpaceAsInt() const {
+      return getMemSpaceAsInt();
     }
   }];
 }

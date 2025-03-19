@@ -482,11 +482,11 @@ mlir::LogicalResult test::TestDummyTensorOp::bufferize(
     const mlir::bufferization::BufferizationOptions &options) {
   const auto inputType = getInput().getType();
   const auto bufferizedInputType = test::TestMemrefType::get(
-      getContext(), inputType.getShape(), inputType.getElementType(), nullptr);
+      getContext(), inputType.getShape(), inputType.getElementType(), nullptr, 0);
   const auto outputType = getOutput().getType();
   const auto bufferizedOutputType =
       test::TestMemrefType::get(getContext(), outputType.getShape(),
-                                outputType.getElementType(), nullptr);
+                                outputType.getElementType(), nullptr, 0);
 
   // replace op with memref analogy, preserve correct types at the boundaries
   auto toMemref = rewriter.create<mlir::bufferization::ToMemrefOp>(
