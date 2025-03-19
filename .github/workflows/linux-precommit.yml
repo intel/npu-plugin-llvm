@@ -5,11 +5,11 @@ permissions:
 
 on:
   push:
-    branches: [ "npu/release/18.x" ]
+    branches: [ "npu/release/19.x" ]
   pull_request:
-    branches: [ "npu/release/18.x" ]
+    branches: [ "npu/release/19.x" ]
   workflow_dispatch:
-    branches: [ "npu/release/18.x" ]
+    branches: [ "npu/release/19.x" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
