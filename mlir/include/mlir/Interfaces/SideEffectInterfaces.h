@@ -147,7 +147,7 @@ public:
         effectOnFullRegion(effectOnFullRegion) {}
   template <typename T,
             std::enable_if_t<
-                llvm::is_one_of<T, OpOperand *, OpResult, BlockArgument>::value,
+                llvm::is_one_of<T, OpOperand *, OpResult, BlockArgument, Value>::value,
                 bool> = true>
   EffectInstance(EffectT *effect, T value,
                  Resource *resource = DefaultResource::get())
@@ -155,7 +155,7 @@ public:
         effectOnFullRegion(false) {}
   template <typename T,
             std::enable_if_t<
-                llvm::is_one_of<T, OpOperand *, OpResult, BlockArgument>::value,
+                llvm::is_one_of<T, OpOperand *, OpResult, BlockArgument, Value>::value,
                 bool> = true>
   EffectInstance(EffectT *effect, T value, int stage, bool effectOnFullRegion,
                  Resource *resource = DefaultResource::get())
@@ -223,6 +223,9 @@ public:
     if (OpResult result = llvm::dyn_cast_if_present<OpResult>(value)) {
       return result;
     }
+    if (Value result = llvm::dyn_cast_if_present<Value>(value)) {
+      return result;
+    }
     return cast_if_present<BlockArgument>(value);
   }
 
@@ -264,7 +267,7 @@ private:
 
   /// The Symbol, OpOperand, OpResult or BlockArgument that the effect applies
   /// to. This is optionally null.
-  PointerUnion<SymbolRefAttr, OpOperand *, OpResult, BlockArgument> value;
+  PointerUnion<SymbolRefAttr, OpOperand *, OpResult, BlockArgument, Value> value;
 
   /// Additional parameters of the effect instance. An attribute is used for
   /// type-safe structured storage and context-based uniquing. Concrete effects
