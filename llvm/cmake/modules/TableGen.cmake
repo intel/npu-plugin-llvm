@@ -81,7 +81,7 @@ function(tablegen project ofn)
   endif()
 
   if (NOT LLVM_ENABLE_WARNINGS)
-    list(APPEND LLVM_TABLEGEN_FLAGS "-no-warn-on-unused-template-args")
+    list(APPEND LLVM_TABLEGEN_FLAGS "-Dno-warn-on-unused-template-args")
   endif()
 
   # We need both _TABLEGEN_TARGET and _TABLEGEN_EXE in the  DEPENDS list
