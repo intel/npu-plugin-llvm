@@ -482,9 +482,10 @@ module {
 // -----
 
 module attributes { transform.with_named_sequence} {
+  // expected-note @below {{ancestor transform op}}
   transform.sequence failures(suppress) {
   ^bb0(%arg0: !transform.any_op):
-    // expected-error @below {{op symbol's parent must have the SymbolTable trai}}
+    // expected-error @below {{cannot be defined inside another transform op}}
     transform.named_sequence @nested() {
       transform.yield
     }
