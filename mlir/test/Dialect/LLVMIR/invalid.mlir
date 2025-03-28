@@ -90,20 +90,6 @@ func.func @alloca_non_integer_alignment() {
 
 // -----
 
-func.func @gep_missing_input_result_type(%pos : i64, %base : !llvm.ptr) {
-  // expected-error@+1 {{2 operands present, but expected 0}}
-  llvm.getelementptr %base[%pos] : () -> (), i64
-}
-
-// -----
-
-func.func @gep_missing_input_type(%pos : i64, %base : !llvm.ptr) {
-  // expected-error@+1 {{2 operands present, but expected 0}}
-  llvm.getelementptr %base[%pos] : () -> (!llvm.ptr), i64
-}
-
-// -----
-
 func.func @gep_missing_result_type(%pos : i64, %base : !llvm.ptr) {
   // expected-error@+1 {{op requires one result}}
   llvm.getelementptr %base[%pos] : (!llvm.ptr, i64) -> (), i64

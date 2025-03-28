@@ -1000,16 +1000,24 @@ Value OperationParser::resolveSSAUse(UnresolvedOperand useInfo, Type type) {
   // If we have already seen a value of this name, return it.
   if (useInfo.number < entries.size() && entries[useInfo.number].value) {
     Value result = entries[useInfo.number].value;
-    // Check that the type matches the other uses.
-    if (result.getType() == type)
-      return maybeRecordUse(result);
 
-    emitError(useInfo.location, "use of value '")
-        .append(useInfo.name,
-                "' expects different type than prior uses: ", type, " vs ",
-                result.getType())
-        .attachNote(getEncodedSourceLocation(entries[useInfo.number].loc))
-        .append("prior use here");
+    // Check that the type matches the other uses.
+    if (type && result.getType() != type) {
+      emitError(useInfo.location, "use of value '")
+          .append(useInfo.name,
+                  "' expects different type than prior uses: ", type, " vs ",
+                  result.getType())
+          .attachNote(getEncodedSourceLocation(entries[useInfo.number].loc))
+          .append("prior use here");
+      return nullptr;
+    }
+
+    return maybeRecordUse(result);
+  }
+
+  if (!type) {
+    emitError(useInfo.location, "forward reference of value '")
+        .append(useInfo.name, "' requires explicit type specification");
     return nullptr;
   }
 

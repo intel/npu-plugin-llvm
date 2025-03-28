@@ -37,12 +37,12 @@
 
 // -----
 // Unrecognized storage type: illegal prefix
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<int8<-4:3>:f32, 0.99872:127>
 
 // -----
 // Unrecognized storage type: no width
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -52,7 +52,7 @@
 
 // -----
 // Unrecognized storage type: storage size < 0
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i-1<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -81,6 +81,26 @@
 !qalias = !quant.uniform<i4<-9:1>:f32, 0.99872:127>
 
 // -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 60000}}
+!qalias = !quant.uniform<f8E5M2<-57344:60000>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -60000}}
+!qalias = !quant.uniform<f8E5M2<-60000:57344>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 500}}
+!qalias = !quant.uniform<f8E4M3FN<-448:500>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -500}}
+!qalias = !quant.uniform<f8E4M3FN<-500:448>:f32, 0.99872:127>
+
+// -----
 // Illegal uniform params: invalid scale
 // expected-error@+1 {{expected floating point literal}}
 !qalias = !quant.uniform<i8<-4:3>:f32, abc:127>
@@ -104,11 +124,6 @@
 // Illegal expressed type: f33
 // expected-error@+1 {{expected non-function type}}
 !qalias = !quant.uniform<i8<-4:3>:f33, 0.99872:127>
-
-// -----
-// Illegal scale: negative
-// expected-error@+1 {{illegal scale: -1.000000}}
-!qalias = !quant.uniform<i8<-4:3>:f32, -1.0:127>
 
 // -----
 // Illegal uniform params: missing quantized dimension

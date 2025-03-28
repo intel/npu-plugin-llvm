@@ -119,6 +119,13 @@ public:
     return success();
   }
 
+  /// List the registered passes and return.
+  MlirOptMainConfig &listPasses(bool list) {
+    listPassesFlag = list;
+    return *this;
+  }
+  bool shouldListPasses() const { return listPassesFlag; }
+
   /// Enable running the reproducer information stored in resources (if
   /// present).
   MlirOptMainConfig &runReproducer(bool enableReproducer) {
@@ -219,6 +226,9 @@ protected:
   /// The callback to populate the pass manager.
   std::function<LogicalResult(PassManager &)> passPipelineCallback;
 
+  /// List the registered passes and return.
+  bool listPassesFlag = false;
+
   /// Enable running the reproducer.
   bool runReproducerFlag = false;
 
@@ -249,6 +259,11 @@ protected:
   std::string generateReproducerFileFlag = "";
 };
 
+/// VPUX-specific method to get value for arch kind from command line
+/// and register HW-specific passes and pipelines
+using AdditionalRegistrationFn =
+      std::function<void(llvm::StringRef helpHeader)>;
+
 /// This defines the function type used to setup the pass manager. This can be
 /// used to pass in a callback to setup a default pass pipeline to be applied on
 /// the loaded IR.
@@ -276,18 +291,12 @@ LogicalResult MlirOptMain(llvm::raw_ostream &outputStream,
 /// Implementation for tools like `mlir-opt`.
 /// - toolName is used for the header displayed by `--help`.
 /// - registry should contain all the dialects that can be parsed in the source.
+/// - additionalRegistration will be called before the main command line parsing
+///   to perform additional registrations.
 LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
-                          DialectRegistry &registry);
-
-/// Implementation for tools like `mlir-opt`.
-/// This function can be used with registrationAndParseCLIOptions so that
-/// CLI options can be accessed before running MlirOptMain.
-/// - inputFilename is the name of the input mlir file.
-/// - outputFilename is the name of the output file.
-/// - registry should contain all the dialects that can be parsed in the source.
-LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef inputFilename,
-                          llvm::StringRef outputFilename,
-                          DialectRegistry &registry);
+                          DialectRegistry &registry,
+                          const AdditionalRegistrationFn &additionalRegistration
+                                  = [](llvm::StringRef){});
 
 /// Helper wrapper to return the result of MlirOptMain directly from main.
 ///

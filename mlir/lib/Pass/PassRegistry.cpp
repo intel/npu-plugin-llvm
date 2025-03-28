@@ -68,6 +68,32 @@ static void printOptionHelp(StringRef arg, StringRef desc, size_t indent,
 // PassRegistry
 //===----------------------------------------------------------------------===//
 
+/// Prints the passes that were previously registered and stored in passRegistry
+void mlir::printRegisteredPasses() {
+  size_t maxWidth = 0;
+  for (auto &entry : *passRegistry)
+    maxWidth = std::max(maxWidth, entry.second.getOptionWidth() + 4);
+
+  // Functor used to print the ordered entries of a registration map.
+  auto printOrderedEntries = [&](StringRef header, auto &map) {
+    llvm::SmallVector<PassRegistryEntry *, 32> orderedEntries;
+    for (auto &kv : map)
+      orderedEntries.push_back(&kv.second);
+    llvm::array_pod_sort(
+        orderedEntries.begin(), orderedEntries.end(),
+        [](PassRegistryEntry *const *lhs, PassRegistryEntry *const *rhs) {
+          return (*lhs)->getPassArgument().compare((*rhs)->getPassArgument());
+        });
+
+    llvm::outs().indent(0) << header << ":\n";
+    for (PassRegistryEntry *entry : orderedEntries)
+      entry->printHelpStr(/*indent=*/2, maxWidth);
+  };
+
+  // Print the available passes.
+  printOrderedEntries("Passes", *passRegistry);
+}
+
 /// Print the help information for this pass. This includes the argument,
 /// description, and any pass options. `descIndent` is the indent that the
 /// descriptions should be aligned.
@@ -206,6 +232,19 @@ void detail::PassOptions::copyOptionValuesFrom(const PassOptions &other) {
     return;
   for (auto optionsIt : llvm::zip(options, other.options))
     std::get<0>(optionsIt)->copyValueFrom(*std::get<1>(optionsIt));
+}
+
+/// Copy only those options that have the same argument name.
+void detail::PassOptions::matchAndCopyOptionValuesFrom(const PassOptions &other) {
+  for (auto* optionsIt : other.options) {
+    const auto& it = llvm::find_if(options, [&](OptionBase * option) {
+      return option->getArgStr() == optionsIt->getArgStr();
+    });
+
+    if (it != options.end()) {
+      (*it)->copyValueFrom(*optionsIt);
+    }
+  }
 }
 
 /// Parse in the next argument from the given options string. Returns a tuple

@@ -1464,3 +1464,13 @@ test.dialect_custom_format_fallback custom_format_fallback
 // Check that an op with an optional result parses f80 as type.
 // CHECK: test.format_optional_result_d_op : f80
 test.format_optional_result_d_op : f80
+
+// Can skip type definition for operands, if they are already defined in the same block
+// CHECK-LABEL: func @optional_operand_types
+func.func @optional_operand_types(%arg0: i64, %arg1: memref<1xf64>) {
+  // CHECK: test.format_operand_optional_type_op %arg0, %arg1
+  test.format_operand_optional_type_op %arg0, %arg1
+  // CHECK: test.format_operand_optional_type_op %arg0, %arg1
+  test.format_operand_optional_type_op %arg0, %arg1 : memref<1xf64>
+  return
+}

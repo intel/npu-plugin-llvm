@@ -25,6 +25,8 @@ struct QuantizedTypeStorage;
 struct AnyQuantizedTypeStorage;
 struct UniformQuantizedTypeStorage;
 struct UniformQuantizedPerAxisTypeStorage;
+struct QuantileQuantizedTypeStorage;
+struct QuantileQuantizedPerAxisTypeStorage;
 struct CalibratedQuantizedTypeStorage;
 
 } // namespace detail
@@ -80,6 +82,18 @@ public:
       return llvm::maxIntN(integralWidth);
     }
     return llvm::maxUIntN(integralWidth);
+  }
+
+  static constexpr int64_t getDefaultMaximumForF8E4M3FN() { return 448; }
+
+  static constexpr int64_t getDefaultMinimumForF8E4M3FN() {
+    return -getDefaultMaximumForF8E4M3FN();
+  }
+
+  static constexpr int64_t getDefaultMaximumForF8E5M2() { return 57344; }
+
+  static constexpr int64_t getDefaultMinimumForF8E5M2() {
+    return -getDefaultMaximumForF8E5M2();
   }
 
   /// Gets the original expressed type that this quantized type approximates.
@@ -282,6 +296,8 @@ public:
                               int64_t zeroPoint, int64_t storageTypeMin,
                               int64_t storageTypeMax);
 
+  static bool classof(mlir::Type type);
+
   /// Gets the scale term. The scale designates the difference between the real
   /// values corresponding to consecutive quantized values differing by 1.
   double getScale() const;
@@ -345,6 +361,8 @@ public:
                               int32_t quantizedDimension,
                               int64_t storageTypeMin, int64_t storageTypeMax);
 
+  static bool classof(mlir::Type type);
+
   /// Gets the quantization scales. The scales designate the difference between
   /// the real values corresponding to consecutive quantized values differing
   /// by 1. The ith scale corresponds to the ith slice in the
@@ -375,6 +393,148 @@ public:
     if (!isSigned())
       return false;
     return !llvm::is_contained(getZeroPoints(), 0);
+  }
+};
+
+/// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
+/// look up table array of quantile values. The type of the data in the look up table is determined by
+/// the quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+///
+/// Syntax synopsis:
+///   Per-layer, all parameters expressed:
+///     !quant<quantile[StorageType:QuantileType:ExpressedType]{Quantiles}:{Scale:ZeroPoint}>
+///   Per-layer, optional parameters omitted:
+///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
+///
+///   StorageType: 'i'|'u' NumBits
+///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
+///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
+///   Quantiles: Quantile+
+///   Quantile: A legal double value
+///   Scale: A legal double value
+///   ZeroPoint: An integer value
+class QuantileQuantizedType
+    : public Type::TypeBase<QuantileQuantizedType, UniformQuantizedType,
+                            detail::QuantileQuantizedTypeStorage> {
+public:
+  using Base::Base;
+  using Base::getChecked;
+
+  static constexpr StringLiteral name = "quant.quantile";
+
+  /// Gets an instance of the type with all parameters specified but not
+  /// checked.
+  static QuantileQuantizedType get(unsigned flags, Type storageType,
+                                   Type quantileType, Type expressedType,
+                                   ArrayRef<double> quantiles, double scale,
+                                   int64_t zeroPoint, int64_t storageTypeMin,
+                                   int64_t storageTypeMax);
+
+  static QuantileQuantizedType
+  getChecked(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+             Type storageType, Type quantileType, Type expressedType,
+             ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
+             int64_t storageTypeMin, int64_t storageTypeMax);
+
+  /// Verifies construction invariants and issues errors/warnings.
+  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                              unsigned flags, Type storageType,
+                              Type quantileType, Type expressedType,
+                              ArrayRef<double> quantiles, double scale,
+                              int64_t zeroPoint, int64_t storageTypeMin,
+                              int64_t storageTypeMax);
+
+  static bool classof(mlir::Type type);
+
+  /// Gets the quantileType
+  Type getQuantileType() const;
+
+  /// Gets the quantileType bit width
+  unsigned getQuantileTypeIntegralWidth() const;
+
+  /// Gets the quantile values
+  ArrayRef<double> getQuantiles() const;
+
+  // Fixed point values are real numbers divided by a scale.
+  // Currently, only signed storage types are treated as fixed point.
+  // A fixed point value can be obtained from an affine value by subtracting
+  // the zeroPoint.
+  // In the future, this may be explicit versus implied by type and zeroPoint.
+  bool isFixedPoint() const { return isSigned() && getZeroPoint() == 0; }
+};
+
+/// Represents per-axis QuantileQuantizedType (also known as per-channel
+/// quantization). The type of the data in the look up table is determined by the
+/// quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+///
+/// Syntax synopsis:
+///   Per-axis, all parameters expressed:
+///     !quant<quantile[StorageType:QuantileType:ExpressedType:QuantizedDim]{Quantiles}:{QuantParams}>
+///   Per-axis, optional parameters omitted:
+///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
+///
+///   StorageType: 'i'|'u' NumBits
+///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
+///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
+///   QuantizedDim: An integer value
+///   Quantiles: Quantile+
+///   Quantile: A legal double value
+///   QuantParams: (Scale ':' ZeroPoint)+
+///   Scale: A legal double value
+///   ZeroPoint: An integer value
+class QuantileQuantizedPerAxisType
+    : public Type::TypeBase<QuantileQuantizedPerAxisType,
+                            UniformQuantizedPerAxisType,
+                            detail::QuantileQuantizedPerAxisTypeStorage> {
+public:
+  using Base::Base;
+  using Base::getChecked;
+
+  static constexpr StringLiteral name = "quant.quantile_per_axis";
+
+  /// Gets an instance of the type with all parameters specified but not
+  /// checked.
+  static QuantileQuantizedPerAxisType
+  get(unsigned flags, Type storageType, Type quantileType, Type expressedType,
+      ArrayRef<double> quantiles, ArrayRef<double> scales,
+      ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+      int64_t storageTypeMin, int64_t storageTypeMax);
+
+  /// Gets an instance of the type with all specified parameters checked.
+  /// Returns a nullptr convertible type on failure.
+  static QuantileQuantizedPerAxisType
+  getChecked(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+             Type storageType, Type quantileType, Type expressedType,
+             ArrayRef<double> quantiles, ArrayRef<double> scales,
+             ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+             int64_t storageTypeMin, int64_t storageTypeMax);
+
+  /// Verifies construction invariants and issues errors/warnings.
+  static LogicalResult
+  verify(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+         Type storageType, Type quantileType, Type expressedType,
+         ArrayRef<double> quantiles, ArrayRef<double> scales,
+         ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+         int64_t storageTypeMin, int64_t storageTypeMax);
+
+  static bool classof(mlir::Type type);
+
+  /// Gets the quantileType
+  Type getQuantileType() const;
+
+  /// Gets the quantileType bit width
+  unsigned getQuantileTypeIntegralWidth() const;
+
+  /// Gets the quantile values
+  ArrayRef<double> getQuantiles() const;
+
+  /// Fixed point values are real numbers divided by a scale.
+  /// Currently, only signed storage types are treated as fixed point.
+  /// A fixed point value can be obtained from an affine value by subtracting
+  /// the zeroPoint.
+  /// In the future, this may be explicit versus implied by type and zeroPoint.
+  bool isFixedPoint() const {
+    return isSigned() && !llvm::is_contained(getZeroPoints(), 0);
   }
 };
 

@@ -30,6 +30,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Support/Timing.h"
 #include "mlir/Support/ToolUtilities.h"
@@ -117,6 +118,10 @@ struct MlirOptMainConfigCLOptions : public MlirOptMainConfig {
         cl::desc("Disable implicit addition of a top-level module op during "
                  "parsing"),
         cl::location(useExplicitModuleFlag), cl::init(false));
+
+    static cl::opt<bool, /*ExternalStorage=*/true> listPasses(
+        "list-passes", cl::desc("Print the list of registered passes and exit"),
+        cl::location(listPassesFlag), cl::init(false));
 
     static cl::opt<bool, /*ExternalStorage=*/true> runReproducer(
         "run-reproducer", cl::desc("Run the pipeline stored in the reproducer"),
@@ -522,12 +527,20 @@ static LogicalResult printRegisteredDialects(DialectRegistry &registry) {
   return success();
 }
 
+static LogicalResult printRegisteredPassesAndReturn() {
+  mlir::printRegisteredPasses();
+  return success();
+}
+
 LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
                                 std::unique_ptr<llvm::MemoryBuffer> buffer,
                                 DialectRegistry &registry,
                                 const MlirOptMainConfig &config) {
   if (config.shouldShowDialects())
     return printRegisteredDialects(registry);
+
+  if (config.shouldListPasses())
+    return printRegisteredPassesAndReturn();
 
   // The split-input-file mode is a very specific mode that slices the file
   // up into small pieces and checks each independently.
@@ -553,17 +566,48 @@ LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
                                config.outputSplitMarker());
 }
 
-LogicalResult mlir::MlirOptMain(int argc, char **argv,
-                                llvm::StringRef inputFilename,
-                                llvm::StringRef outputFilename,
-                                DialectRegistry &registry) {
+LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
+                                DialectRegistry &registry,
+                                const AdditionalRegistrationFn &additionalRegistration) {
+  static cl::opt<std::string> inputFilename(
+      cl::Positional, cl::desc("<input file>"), cl::init("-"));
+
+  static cl::opt<std::string> outputFilename("o", cl::desc("Output filename"),
+                                             cl::value_desc("filename"),
+                                             cl::init("-"));
 
   InitLLVM y(argc, argv);
 
+  // Register any command line options.
+  registerAsmPrinterCLOptions();
+  registerMLIRContextCLOptions();
+  registerPassManagerCLOptions();
+  registerDefaultTimingManagerCLOptions();
+  tracing::DebugCounter::registerCLOptions();
+
+  // Build the list of dialects as a header for the --help message.
+  std::string helpHeader = (toolName + "\nAvailable Dialects: ").str();
+  {
+    llvm::raw_string_ostream os(helpHeader);
+    interleaveComma(registry.getDialectNames(), os,
+                    [&](auto name) { os << name; });
+  }
+
+  // It is not possible to place a call after command line parser
+  // since not all options are registered at the moment
+  additionalRegistration(helpHeader);
+
+  MlirOptMainConfig::registerCLOptions(registry);
+
+  // Parse pass names in main to ensure static initialization completed.
+  cl::ParseCommandLineOptions(argc, argv, helpHeader);
   MlirOptMainConfig config = MlirOptMainConfig::createFromCLOptions();
 
   if (config.shouldShowDialects())
     return printRegisteredDialects(registry);
+
+  if (config.shouldListPasses())
+    return printRegisteredPassesAndReturn();
 
   // When reading from stdin and the input is a tty, it is often a user mistake
   // and the process "appears to be stuck". Print a message to let the user know
@@ -592,15 +636,4 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv,
   // Keep the output file if the invocation of MlirOptMain was successful.
   output->keep();
   return success();
-}
-
-LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
-                                DialectRegistry &registry) {
-
-  // Register and parse command line options.
-  std::string inputFilename, outputFilename;
-  std::tie(inputFilename, outputFilename) =
-      registerAndParseCLIOptions(argc, argv, toolName, registry);
-
-  return MlirOptMain(argc, argv, inputFilename, outputFilename, registry);
 }

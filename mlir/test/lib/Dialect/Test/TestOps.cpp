@@ -10,6 +10,7 @@
 #include "TestDialect.h"
 #include "TestFormatUtils.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 
 using namespace mlir;
 using namespace test;

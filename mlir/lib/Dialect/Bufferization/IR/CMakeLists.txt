@@ -27,4 +27,5 @@ add_mlir_dialect_library(MLIRBufferizationDialect
   MLIRSubsetOpInterface
   MLIRTensorDialect
   MLIRMemRefDialect
+  MLIRBufferizationAllExtensions
   )

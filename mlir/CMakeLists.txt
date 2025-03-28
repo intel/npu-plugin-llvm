@@ -131,6 +131,10 @@ set(MLIR_ENABLE_NVPTXCOMPILER 0 CACHE BOOL
 
 set(MLIR_ENABLE_PDL_IN_PATTERNMATCH 1 CACHE BOOL "Enable PDL in PatternMatch")
 
+option(MLIR_DIALECT_SPIRV_ENABLE
+       "Enable build targets related to SPIR-V dialect."
+       ON)
+
 option(MLIR_INCLUDE_TESTS
        "Generate build targets for the MLIR unit tests."
        ${LLVM_INCLUDE_TESTS})

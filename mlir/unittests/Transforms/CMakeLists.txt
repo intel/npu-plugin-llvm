@@ -1,8 +1,11 @@
 add_mlir_unittest(MLIRTransformsTests
   Canonicalizer.cpp
   DialectConversion.cpp
+  BufferizationUtils.cpp
 )
 target_link_libraries(MLIRTransformsTests
   PRIVATE
   MLIRParser
-  MLIRTransforms)
+  MLIRTransforms
+  MLIRBufferizationDialect
+  )

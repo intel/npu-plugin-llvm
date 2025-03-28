@@ -292,6 +292,9 @@ def FormatOperandDOp : FormatOperandBase<"d", [{
 def FormatOperandEOp : FormatOperandBase<"e", [{
   $buildable `,` $operand `:` type($buildable) `,` type($operand) attr-dict
 }]>;
+def FormatOperandOptionalTypeOp : FormatOperandBase<"optional_type", [{
+  $buildable `,` $operand custom<OptionalType>(type($operand)) attr-dict
+}]>;
 
 def FormatSuccessorAOp : TEST_Op<"format_successor_a_op", [Terminator]> {
   let successors = (successor VariadicSuccessor<AnySuccessor>:$targets);
