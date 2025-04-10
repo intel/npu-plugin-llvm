@@ -20,7 +20,7 @@ namespace clang::tidy::misc {
 
 void UseFreeFunctionVariantsCheck::registerMatchers(MatchFinder *Finder) {
     Finder->addMatcher(cxxMemberCallExpr(on(expr().bind("base")),
-                                         callee(cxxMethodDecl(hasAnyName("isa", "dyn_cast", "cast")))
+                                         callee(cxxMethodDecl(hasAnyName("isa", "dyn_cast", "cast", "dyn_cast_or_null")))
                 ).bind("castCall"),
                        this);
 }
