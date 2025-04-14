@@ -51,7 +51,7 @@ static Type parseStorageType(DialectAsmParser &parser, bool &isSigned) {
         return nullptr;
       }
       isSigned = false;
-      type = parser.getBuilder().getIntegerType(storageTypeWidth);
+      type = parser.getBuilder().getIntegerType(storageTypeWidth, isSigned);
 
     } else {
       parser.emitError(typeLoc, "illegal quantized storage type alias");
