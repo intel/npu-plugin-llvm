@@ -70,11 +70,6 @@ struct OneShotBufferizePass
   explicit OneShotBufferizePass(const OneShotBufferizationOptions &options)
       : options(options) {}
 
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry
-        .insert<bufferization::BufferizationDialect, memref::MemRefDialect>();
-  }
-
   void runOnOperation() override {
     OneShotBufferizationOptions opt;
     if (!options) {
