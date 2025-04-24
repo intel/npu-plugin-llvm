@@ -1,3 +1,4 @@
+// REQUIRES: tosa-to-tensor-enabled
 // RUN: mlir-opt --split-input-file -pass-pipeline="builtin.module(func.func(tosa-to-tensor))" %s -verify-diagnostics
 
 // CHECK-LABEL:  @slice_resultType_unranked
