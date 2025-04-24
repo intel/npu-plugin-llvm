@@ -1,3 +1,4 @@
+// REQUIRES: xegpu-dialect-enabled
 // RUN: mlir-opt %s | FileCheck %s
 // Verify the printed output can be parsed.
 // RUN: mlir-opt %s | mlir-opt | FileCheck %s
