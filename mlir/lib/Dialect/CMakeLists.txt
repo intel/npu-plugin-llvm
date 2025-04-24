@@ -44,7 +44,9 @@ add_subdirectory(UB)
 add_subdirectory(Utils)
 add_subdirectory(Vector)
 add_subdirectory(X86Vector)
-# add_subdirectory(XeGPU)
+if(MLIR_DIALECT_XEGPU_ENABLE)
+  add_subdirectory(XeGPU)
+endif()
 
 set(LLVM_OPTIONAL_SOURCES
   Traits.cpp

@@ -191,6 +191,15 @@ set(MLIR_PDLL_TABLEGEN_TARGET "${MLIR_PDLL_TABLEGEN_TARGET}" CACHE INTERNAL "")
 set(MLIR_SRC_SHARDER_TABLEGEN_EXE "${MLIR_SRC_SHARDER_TABLEGEN_EXE}" CACHE INTERNAL "")
 set(MLIR_SRC_SHARDER_TABLEGEN_TARGET "${MLIR_SRC_SHARDER_TABLEGEN_TARGET}" CACHE INTERNAL "")
 
+# XeGPU Dialect Option (Default OFF)
+option(MLIR_DIALECT_XEGPU_ENABLE
+       "Enable the XeGPU dialect."
+       OFF)
+
+if(MLIR_DIALECT_XEGPU_ENABLE)
+  add_compile_definitions(MLIR_DIALECT_XEGPU_ENABLE)
+endif()
+
 add_subdirectory(include/mlir)
 add_subdirectory(lib)
 # C API needs all dialects for registration, but should be built before tests.
