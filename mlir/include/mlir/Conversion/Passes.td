@@ -1259,7 +1259,7 @@ def TosaToSCF : Pass<"tosa-to-scf"> {
 //===----------------------------------------------------------------------===//
 // TosaToTensor
 //===----------------------------------------------------------------------===//
-
+#ifdef MLIR_CONVERSION_TOSATOTENSOR_ENABLE
 def TosaToTensor : Pass<"tosa-to-tensor"> {
   let summary = "Lower TOSA to the Tensor dialect";
   let dependentDialects = [
@@ -1272,6 +1272,7 @@ def TosaToTensor : Pass<"tosa-to-tensor"> {
 
   let constructor = "tosa::createTosaToTensor()";
 }
+#endif
 
 //===----------------------------------------------------------------------===//
 // UBToLLVM

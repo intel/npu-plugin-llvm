@@ -72,6 +72,10 @@ config.riscv_emulator_utils_lib_dir = "@RISCV_EMULATOR_UTILS_LIB_DIR@"
 # Add feature to enable/disable XeGPU Dialect tests
 if "@MLIR_DIALECT_XEGPU_ENABLE@" == "ON":
     config.available_features.add("xegpu-dialect-enabled")
+    
+# Add feature to enable/disable TosaTotensor tests
+if "@MLIR_CONVERSION_TOSATOTENSOR_ENABLE@" == "ON":
+    config.available_features.add("tosa-to-tensor-enabled")
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
