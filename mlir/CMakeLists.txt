@@ -200,6 +200,15 @@ if(MLIR_DIALECT_XEGPU_ENABLE)
   add_compile_definitions(MLIR_DIALECT_XEGPU_ENABLE)
 endif()
 
+# TosaToTensor Conversion Option (Default OFF)
+option(MLIR_CONVERSION_TOSATOTENSOR_ENABLE 
+       "Enable TosaToTensor conversion" 
+       OFF)
+
+if(MLIR_CONVERSION_TOSATOTENSOR_ENABLE)
+  add_compile_definitions(MLIR_CONVERSION_TOSATOTENSOR_ENABLE)
+endif()
+
 add_subdirectory(include/mlir)
 add_subdirectory(lib)
 # C API needs all dialects for registration, but should be built before tests.

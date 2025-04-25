@@ -1215,19 +1215,20 @@ def TosaToSCF : Pass<"tosa-to-scf"> {
 //===----------------------------------------------------------------------===//
 // TosaToTensor
 //===----------------------------------------------------------------------===//
+#ifdef MLIR_CONVERSION_TOSATOTENSOR_ENABLE
+def TosaToTensor : Pass<"tosa-to-tensor"> {
+  let summary = "Lower TOSA to the Tensor dialect";
+  let dependentDialects = [
+    "tensor::TensorDialect",
+  ];
+  let description = [{
+    Pass that converts TOSA operations to the equivalent operations using the
+    operations in the Tensor dialect.
+  }];
 
-// def TosaToTensor : Pass<"tosa-to-tensor"> {
-//  let summary = "Lower TOSA to the Tensor dialect";
-//  let dependentDialects = [
-//    "tensor::TensorDialect",
-//  ];
-//  let description = [{
-//    Pass that converts TOSA operations to the equivalent operations using the
-//    operations in the Tensor dialect.
-//  }];
-//
-//  let constructor = "tosa::createTosaToTensor()";
-//}
+  let constructor = "tosa::createTosaToTensor()";
+}
+#endif
 
 //===----------------------------------------------------------------------===//
 // UBToLLVM

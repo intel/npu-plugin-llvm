@@ -6,3 +6,7 @@ mlir_tablegen(Passes.capi.cpp.inc -gen-pass-capi-impl --prefix Conversion)
 add_public_tablegen_target(MLIRConversionPassIncGen)
 
 add_mlir_doc(Passes ConversionPasses ./ -gen-pass-doc)
+
+if(MLIR_CONVERSION_TOSATOTENSOR_ENABLE)
+  add_subdirectory(TosaToTensor)
+endif()

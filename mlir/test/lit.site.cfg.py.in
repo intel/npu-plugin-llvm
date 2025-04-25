@@ -64,6 +64,10 @@ config.riscv_vector_emulator_options = "@RISCV_VECTOR_EMULATOR_OPTIONS@"
 config.riscv_emulator_lli_executable = "@RISCV_EMULATOR_LLI_EXECUTABLE@"
 config.riscv_emulator_utils_lib_dir = "@RISCV_EMULATOR_UTILS_LIB_DIR@"
 
+# Add feature to enable/disable TosaTotensor tests
+if "@MLIR_CONVERSION_TOSATOTENSOR_ENABLE@" == "ON":
+    config.available_features.add("tosa-to-tensor-enabled")
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
