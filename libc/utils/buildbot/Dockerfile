@@ -1,4 +1,4 @@
-FROM debian:10
+FROM debian:12
 
 # Installing dependencies.
 RUN dpkg --add-architecture i386
