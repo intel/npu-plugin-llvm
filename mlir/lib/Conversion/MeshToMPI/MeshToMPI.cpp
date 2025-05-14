@@ -255,7 +255,7 @@ struct ConvertUpdateHaloOp
       // If the destination is a memref, we need to cast it to a tensor
       auto tensorType = MemRefType::get(
           dstShape, cast<ShapedType>(array.getType()).getElementType());
-      array = rewriter.create<bufferization::ToMemrefOp>(loc, tensorType, array)
+      array = rewriter.create<bufferization::ToBufferOp>(loc, tensorType, array)
                   .getResult();
     }
     auto rank = cast<ShapedType>(array.getType()).getRank();

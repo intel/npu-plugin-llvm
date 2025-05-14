@@ -12,9 +12,9 @@ module.exports = {
                                 field('attributes', optional($.attribute)),
                                 field('return', $._type_annotation)),
 
-                            // operation ::= `bufferization.to_memref` $tensor
+                            // operation ::= `bufferization.to_buffer` $tensor
                             // attr-dict `:` type($memref)
-                            seq('bufferization.to_memref',
+                            seq('bufferization.to_buffer',
                                 field('tensor', $.value_use),
                                 field('attributes', optional($.attribute)),
                                 field('return', $._type_annotation)),

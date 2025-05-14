@@ -225,11 +225,11 @@ namespace {
 class BufferizationRewriter : public IRRewriter, public RewriterBase::Listener {
 public:
   BufferizationRewriter(MLIRContext *ctx, DenseSet<Operation *> &erasedOps,
-                        DenseSet<Operation *> &toMemrefOps,
+                        DenseSet<Operation *> &toBufferOps,
                         SmallVector<Operation *> &worklist,
                         const BufferizationOptions &options,
                         BufferizationStatistics *statistics)
-      : IRRewriter(ctx), erasedOps(erasedOps), toMemrefOps(toMemrefOps),
+      : IRRewriter(ctx), erasedOps(erasedOps), toBufferOps(toBufferOps),
         worklist(worklist), analysisState(options), statistics(statistics) {
     setListener(this);
   }
@@ -238,7 +238,7 @@ protected:
   void notifyOperationErased(Operation *op) override {
     erasedOps.insert(op);
     // Erase if present.
-    toMemrefOps.erase(op);
+    toBufferOps.erase(op);
   }
 
   void notifyOperationInserted(Operation *op, InsertPoint previous) override {
@@ -255,9 +255,9 @@ protected:
             sideEffectingOp.hasEffect<MemoryEffects::Allocate>());
     }
 
-    // Keep track of to_memref ops.
-    if (isa<ToMemrefOp>(op)) {
-      toMemrefOps.insert(op);
+    // Keep track of to_buffer ops.
+    if (isa<ToBufferOp>(op)) {
+      toBufferOps.insert(op);
       return;
     }
 
@@ -282,8 +282,8 @@ private:
   /// A set of all erased ops.
   DenseSet<Operation *> &erasedOps;
 
-  /// A set of all to_memref ops.
-  DenseSet<Operation *> &toMemrefOps;
+  /// A set of all to_buffer ops.
+  DenseSet<Operation *> &toBufferOps;
 
   /// The worklist of ops to be bufferized.
   SmallVector<Operation *> &worklist;
@@ -306,9 +306,9 @@ LogicalResult bufferization::bufferizeOp(Operation *op,
       return failure();
   }
 
-  // Keep track of to_memref ops.
-  DenseSet<Operation *> toMemrefOps;
-  op->walk([&](ToMemrefOp toMemrefOp) { toMemrefOps.insert(toMemrefOp); });
+  // Keep track of to_buffer ops.
+  DenseSet<Operation *> toBufferOps;
+  op->walk([&](ToBufferOp toBufferOp) { toBufferOps.insert(toBufferOp); });
 
   // Gather all bufferizable ops in top-to-bottom order.
   //
@@ -327,7 +327,7 @@ LogicalResult bufferization::bufferizeOp(Operation *op,
   DenseSet<Operation *> erasedOps;
 
   // Bufferize all ops.
-  BufferizationRewriter rewriter(op->getContext(), erasedOps, toMemrefOps,
+  BufferizationRewriter rewriter(op->getContext(), erasedOps, toBufferOps,
                                  worklist, options, statistics);
   for (unsigned i = 0; i < worklist.size(); ++i) {
     Operation *nextOp = worklist[i];
@@ -370,11 +370,11 @@ LogicalResult bufferization::bufferizeOp(Operation *op,
   if (erasedOps.contains(op))
     return success();
 
-  // Fold all to_memref(to_tensor(x)) pairs.
-  for (Operation *op : toMemrefOps) {
+  // Fold all to_buffer(to_tensor(x)) pairs.
+  for (Operation *op : toBufferOps) {
     rewriter.setInsertionPoint(op);
-    (void)bufferization::foldToMemrefToTensorPair(
-        rewriter, cast<ToMemrefOp>(op), options);
+    (void)bufferization::foldToBufferToTensorPair(
+        rewriter, cast<ToBufferOp>(op), options);
   }
 
   // Remove all dead to_tensor ops.
@@ -405,8 +405,8 @@ LogicalResult bufferization::bufferizeOp(Operation *op,
     // Ops without any uses and no side effects will fold away.
     if (op->getUses().empty() && isMemoryEffectFree(op))
       continue;
-    // ToTensorOps/ToMemrefOps are allowed in the output.
-    if (isa<ToTensorOp, ToMemrefOp>(op))
+    // ToTensorOps/ToBufferOps are allowed in the output.
+    if (isa<ToTensorOp, ToBufferOp>(op))
       continue;
     return op->emitError("op was not bufferized");
   }
@@ -487,7 +487,7 @@ bufferization::bufferizeBlockSignature(Block *block, RewriterBase &rewriter,
       if (failed(operandBufferType))
         return failure();
       rewriter.setInsertionPointAfterValue(operand);
-      Value bufferizedOperand = rewriter.create<bufferization::ToMemrefOp>(
+      Value bufferizedOperand = rewriter.create<bufferization::ToBufferOp>(
           operand.getLoc(), *operandBufferType, operand);
       // A cast is needed if the operand and the block argument have different
       // bufferized types.

@@ -15,7 +15,7 @@ module attributes {transform.with_named_sequence} {
 func.func @test_function(%A : tensor<?xf32>, %v : vector<4xf32>) -> (tensor<?xf32>) {
   %c0 = arith.constant 0 : index
 
-  // CHECK: %[[A_memref:.*]] = bufferization.to_memref %[[A]]
+  // CHECK: %[[A_memref:.*]] = bufferization.to_buffer %[[A]]
   // CHECK: %[[dim:.*]] = memref.dim %[[A_memref]]
   // CHECK: %[[alloc:.*]] = memref.alloc(%[[dim]])
   // CHECK: memref.copy %[[A_memref]], %[[alloc]]
@@ -45,7 +45,7 @@ module attributes {transform.with_named_sequence} {
 func.func @test_function(%A : tensor<?xf32>, %v : vector<4xf32>) -> (tensor<?xf32>) {
   %c0 = arith.constant 0 : index
 
-  // CHECK: %[[A_memref:.*]] = bufferization.to_memref %[[A]]
+  // CHECK: %[[A_memref:.*]] = bufferization.to_buffer %[[A]]
   // CHECK: %[[dim:.*]] = memref.dim %[[A_memref]]
   // CHECK: %[[alloc:.*]] = memref.alloc(%[[dim]])
   // CHECK: linalg.copy ins(%[[A_memref]] : memref<{{.*}}>) outs(%[[alloc]]
@@ -117,7 +117,7 @@ module {
   func.func @test_function(%A : tensor<?xf32>, %v : vector<4xf32>) -> (tensor<?xf32>) {
     %c0 = arith.constant 0 : index
 
-    // CHECK: %[[A_memref:.*]] = bufferization.to_memref %[[A]]
+    // CHECK: %[[A_memref:.*]] = bufferization.to_buffer %[[A]]
     // CHECK: %[[dim:.*]] = memref.dim %[[A_memref]]
     // CHECK: %[[alloc:.*]] = memref.alloc(%[[dim]])
     // CHECK: memref.copy %[[A_memref]], %[[alloc]]
@@ -222,8 +222,8 @@ module attributes {transform.with_named_sequence} {
   transform.named_sequence @__transform_main(%arg1: !transform.any_op {transform.readonly}) {
     %alloc_tensor = transform.structured.match ops{["bufferization.alloc_tensor"]} in %arg1
       : (!transform.any_op) -> !transform.op<"bufferization.alloc_tensor">
-    %2, %new = transform.structured.bufferize_to_allocation %alloc_tensor 
-      {alloc_op = "memref.alloca"} 
+    %2, %new = transform.structured.bufferize_to_allocation %alloc_tensor
+      {alloc_op = "memref.alloca"}
         : !transform.op<"bufferization.alloc_tensor">
     transform.yield
   }
