@@ -34,6 +34,9 @@ using namespace detail;
 using DisplayMode = DefaultTimingManager::DisplayMode;
 using OutputFormat = DefaultTimingManager::OutputFormat;
 
+constexpr llvm::StringLiteral kTimingDescription =
+    "... Execution time report ...";
+
 //===----------------------------------------------------------------------===//
 // TimingManager
 //===----------------------------------------------------------------------===//
@@ -106,6 +109,50 @@ TimingIdentifier TimingIdentifier::get(StringRef str, TimingManager &tm) {
 //===----------------------------------------------------------------------===//
 
 namespace {
+
+class OutputTextStrategy : public OutputStrategy {
+public:
+  OutputTextStrategy(raw_ostream &os) : OutputStrategy(os) {}
+
+  void printHeader(const TimeRecord &total) override {
+    // Figure out how many spaces to description name.
+    unsigned padding = (80 - kTimingDescription.size()) / 2;
+    os << "===" << std::string(73, '-') << "===\n";
+    os.indent(padding) << kTimingDescription << '\n';
+    os << "===" << std::string(73, '-') << "===\n";
+
+    // Print the total time followed by the section headers.
+    os << llvm::format("  Total Execution Time: %.4f seconds\n\n", total.wall);
+    if (total.user != total.wall)
+      os << "  ----User Time----";
+    os << "  ----Wall Time----  ----Name----\n";
+  }
+
+  void printFooter() override { os.flush(); }
+
+  void printTime(const TimeRecord &time, const TimeRecord &total) override {
+    if (total.user != total.wall) {
+      os << llvm::format("  %8.4f (%5.1f%%)", time.user,
+                         100.0 * time.user / total.user);
+    }
+    os << llvm::format("  %8.4f (%5.1f%%)  ", time.wall,
+                       100.0 * time.wall / total.wall);
+  }
+
+  void printListEntry(StringRef name, const TimeRecord &time,
+                      const TimeRecord &total, bool lastEntry) override {
+    printTime(time, total);
+    os << name << "\n";
+  }
+
+  void printTreeEntry(unsigned indent, StringRef name, const TimeRecord &time,
+                      const TimeRecord &total) override {
+    printTime(time, total);
+    os.indent(indent) << name << "\n";
+  }
+
+  void printTreeEntryEnd(unsigned indent, bool lastEntry) override {}
+};
 
 class OutputJsonStrategy : public OutputStrategy {
 public:
