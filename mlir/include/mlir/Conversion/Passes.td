@@ -1464,6 +1464,7 @@ def ConvertVectorToSPIRV : Pass<"convert-vector-to-spirv"> {
 // VectorToXeGPU
 //===----------------------------------------------------------------------===//
 
+#ifdef MLIR_DIALECT_XEGPU_ENABLE
 def ConvertVectorToXeGPU : Pass<"convert-vector-to-xegpu"> {
   let summary = "Lower the operations from the vector dialect into the XeGPU "
                 "dialect";
@@ -1473,5 +1474,6 @@ def ConvertVectorToXeGPU : Pass<"convert-vector-to-xegpu"> {
     "vector::VectorDialect", "xegpu::XeGPUDialect"
   ];
 }
+#endif
 
 #endif // MLIR_CONVERSION_PASSES
