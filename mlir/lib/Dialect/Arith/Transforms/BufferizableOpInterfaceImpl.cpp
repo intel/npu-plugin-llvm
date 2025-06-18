@@ -159,8 +159,8 @@ struct SelectOpInterface
     // buffers have different types, they differ only in their layout map. Cast
     // both of them to the most dynamic MemRef type.
     if (trueBuffer.getType() != falseBuffer.getType()) {
-      auto targetType =
-          bufferization::getBufferType(selectOp.getResult(), options);
+      auto targetType = bufferization::detail::asMemRefType(
+          bufferization::getBufferType(selectOp.getResult(), options));
       if (failed(targetType))
         return failure();
       if (trueBuffer.getType() != *targetType)
@@ -181,10 +181,12 @@ struct SelectOpInterface
                 SmallVector<Value> &invocationStack) const {
     auto selectOp = cast<arith::SelectOp>(op);
     assert(value == selectOp.getResult() && "invalid value");
-    auto trueType = bufferization::getBufferType(selectOp.getTrueValue(),
-                                                 options, invocationStack);
-    auto falseType = bufferization::getBufferType(selectOp.getFalseValue(),
-                                                  options, invocationStack);
+    auto trueType =
+        bufferization::detail::asMemRefType(bufferization::getBufferType(
+            selectOp.getTrueValue(), options, invocationStack));
+    auto falseType =
+        bufferization::detail::asMemRefType(bufferization::getBufferType(
+            selectOp.getFalseValue(), options, invocationStack));
     if (failed(trueType) || failed(falseType))
       return failure();
     if (*trueType == *falseType)

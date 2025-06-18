@@ -564,3 +564,23 @@ void TestTypeNewlineAndIndentType::print(::mlir::AsmPrinter &printer) const {
   printer.printNewline();
   printer << ">";
 }
+
+::mlir::FailureOr<::mlir::bufferization::BufferLikeType>
+TestTensorType::getBufferType(
+    const ::mlir::bufferization::BufferizationOptions &,
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()>) {
+  return llvm::cast<bufferization::BufferLikeType>(
+      TestMemrefType::get(getContext(), getShape(), getElementType(), nullptr));
+}
+
+::mlir::LogicalResult TestTensorType::verifyCompatibleBufferType(
+    ::mlir::bufferization::BufferLikeType bufferType,
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
+  auto testMemref = llvm::dyn_cast<TestMemrefType>(bufferType);
+  if (!testMemref)
+    return emitError() << "expected TestMemrefType";
+
+  const bool valid = getShape() == testMemref.getShape() &&
+                     getElementType() == testMemref.getElementType();
+  return mlir::success(valid);
+}
