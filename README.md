@@ -1,8 +1,7 @@
 # The LLVM Compiler Infrastructure
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/llvm/llvm-project/badge)](https://securityscorecards.dev/viewer/?uri=github.com/llvm/llvm-project)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8273/badge)](https://www.bestpractices.dev/projects/8273)
-[![libc++](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml/badge.svg?branch=main&event=schedule)](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml?query=event%3Aschedule)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/intel/npu-plugin-llvm/badge)](https://securityscorecards.dev/viewer/?uri=github.com/intel/npu-plugin-llvm)
+[![Linux precommit](https://github.com/intel/npu-plugin-llvm/actions/workflows/linux-precommit.yml/badge.svg?branch=npu%2Frelease%2F19.x&event=push)](https://github.com/intel/npu-plugin-llvm/actions/workflows/linux-precommit.yml?query=event%3Apush)
 
 Welcome to the LLVM project!
 
