@@ -72,6 +72,14 @@ int main(int argc, char **argv) {
           "Name of the macro to be defined -- ignored by mlir-src-sharder"),
       llvm::cl::value_desc("macro name"), llvm::cl::Prefix);
 
+  // CMake/TableGen pass this flag, re-registering after ResetCommandLineParser
+  // avoids "unknown argument" errors.
+  // TODO: Investigate if mlir-src-sharder's argument parsing can be
+  // aligned with generic tablegen options more broadly.
+  llvm::cl::opt<bool> noWarnOnUnusedTemplateArg(
+      "no-warn-on-unused-template-args",
+      llvm::cl::desc("Disable unused template argument warnings."));
+
   llvm::InitLLVM y(argc, argv);
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
