@@ -265,6 +265,7 @@ public:
   static LogicalResult replaceAllSymbolUses(Operation *oldSymbol,
                                             SymbolRefAttr newSymbolName,
                                             Region *from);
+
 private:
   Operation *symbolTableOp;
 
@@ -474,10 +475,10 @@ public:
 
 template <typename ConcreteType>
 class SymbolContainer : public TraitBase<ConcreteType, SymbolContainer> {
-  public:
-    static LogicalResult verifyTrait(Operation *op) {
-      return mlir::success(); //TODO::implement
-    }
+public:
+  static LogicalResult verifyTrait(Operation *op) {
+    return mlir::success(); // TODO::implement
+  }
 
   /// Look up a symbol with the specified name, returning null if no such
   /// name exists. Symbol names never include the @ on them. Note: This

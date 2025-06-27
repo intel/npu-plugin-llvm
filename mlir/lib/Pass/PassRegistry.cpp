@@ -278,9 +278,10 @@ void detail::PassOptions::copyOptionValuesFrom(const PassOptions &other) {
 }
 
 /// Copy only those options that have the same argument name.
-void detail::PassOptions::matchAndCopyOptionValuesFrom(const PassOptions &other) {
-  for (auto* optionsIt : other.options) {
-    const auto& it = llvm::find_if(options, [&](OptionBase * option) {
+void detail::PassOptions::matchAndCopyOptionValuesFrom(
+    const PassOptions &other) {
+  for (auto *optionsIt : other.options) {
+    const auto &it = llvm::find_if(options, [&](OptionBase *option) {
       return option->getArgStr() == optionsIt->getArgStr();
     });
 

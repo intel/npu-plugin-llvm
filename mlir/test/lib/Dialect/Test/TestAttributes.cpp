@@ -67,7 +67,7 @@ void CompoundAAttr::print(AsmPrinter &printer) const {
 //===----------------------------------------------------------------------===//
 
 Attribute TestDecimalShapeAttr::parse(AsmParser &parser, Type type) {
-  if (parser.parseLess()){
+  if (parser.parseLess()) {
     return Attribute();
   }
   SmallVector<int64_t> shape;
@@ -320,7 +320,7 @@ static ParseResult parseCustomFloatAttr(AsmParser &p, StringAttr &typeStrAttr,
 //===----------------------------------------------------------------------===//
 
 Attribute TestAttrNewlineAndIndentAttr::parse(::mlir::AsmParser &parser,
-                                           ::mlir::Type type) {
+                                              ::mlir::Type type) {
   Type indentType;
   if (parser.parseLess()) {
     return {};

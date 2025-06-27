@@ -688,7 +688,8 @@ Inliner::Impl::inlineCallsInSCC(InlinerInterfaceImpl &inlinerIface,
     useList.mergeUsesAfterInlining(it.targetNode, it.sourceNode);
 
     // then erase the call.
-    const auto *callInterface = inlinerIface.getInterfaceFor(call->getDialect());
+    const auto *callInterface =
+        inlinerIface.getInterfaceFor(call->getDialect());
     callInterface->eraseCall(call);
 
     // If we inlined in place, mark the node for deletion.

@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 #include "TypeDetail.h"
 #include "mlir/Dialect/Quant/IR/Quant.h"
-#include "mlir/Dialect/Quant/IR/QuantTypes.h"
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
@@ -34,7 +34,7 @@ double getMaxScale(Type expressedType) {
   return APFloat::getLargest(floatType.getFloatSemantics()).convertToDouble();
 }
 
-}  // namespace
+} // namespace
 
 unsigned QuantizedType::getFlags() const {
   return static_cast<ImplType *>(impl)->flags;
@@ -49,7 +49,7 @@ QuantizedType::verifyInvariants(function_ref<InFlightDiagnostic()> emitError,
                                 unsigned flags, Type storageType,
                                 Type expressedType, int64_t storageTypeMin,
                                 int64_t storageTypeMax) {
-                                 
+
   bool isSigned =
       (flags & QuantizationFlags::Signed) == QuantizationFlags::Signed;
 
@@ -448,9 +448,9 @@ LogicalResult QuantileQuantizedType::verifyInvariants(
     Type storageType, Type quantileType, Type expressedType,
     ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
     int64_t storageTypeMin, int64_t storageTypeMax) {
-  if (failed(UniformQuantizedType::verifyInvariants(emitError, flags, storageType,
-                                          expressedType, scale, zeroPoint,
-                                          storageTypeMin, storageTypeMax))) {
+  if (failed(UniformQuantizedType::verifyInvariants(
+          emitError, flags, storageType, expressedType, scale, zeroPoint,
+          storageTypeMin, storageTypeMax))) {
     return failure();
   }
 

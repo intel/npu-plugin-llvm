@@ -176,9 +176,9 @@ public:
   virtual void eraseCall(Operation *call) const;
 
   /// Hook to get proper place where callable region will be inlined
-  /// By default returns block of the call operation 
-  virtual std::tuple<Block*, Block::iterator> 
-            getInlineBlockAndPoint(Operation *call) const;
+  /// By default returns block of the call operation
+  virtual std::tuple<Block *, Block::iterator>
+  getInlineBlockAndPoint(Operation *call) const;
 
   /// Process a set of blocks that have been inlined for a call. This callback
   /// is invoked before inlined terminator operations have been processed.

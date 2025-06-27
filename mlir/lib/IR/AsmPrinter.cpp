@@ -412,7 +412,7 @@ public:
 
   /// Returns the output stream of the printer.
   raw_ostream &getStream() { return os; }
-  
+
   /// Print a newline and indent the printer to the start of the current
   /// operation.
   void printNewline() {
@@ -2828,8 +2828,9 @@ void AsmPrinter::Impl::printDialectAttribute(Attribute attr) {
     llvm::raw_string_ostream attrNameStr(attrName);
     Impl subPrinter(attrNameStr, state);
 
-    // The values of currentIndent and newLine are assigned to the created subprinter, 
-    // so that the indent level and number of printed lines can be tracked.
+    // The values of currentIndent and newLine are assigned to the created
+    // subprinter, so that the indent level and number of printed lines can be
+    // tracked.
     subPrinter.currentIndent = currentIndent;
     subPrinter.newLine = newLine;
 
@@ -2848,8 +2849,9 @@ void AsmPrinter::Impl::printDialectType(Type type) {
     llvm::raw_string_ostream typeNameStr(typeName);
     Impl subPrinter(typeNameStr, state);
 
-    // The values of currentIndent and newLine are assigned to the created subprinter, 
-    // so that the indent level and number of printed lines can be tracked.
+    // The values of currentIndent and newLine are assigned to the created
+    // subprinter, so that the indent level and number of printed lines can be
+    // tracked.
     subPrinter.currentIndent = currentIndent;
     subPrinter.newLine = newLine;
 

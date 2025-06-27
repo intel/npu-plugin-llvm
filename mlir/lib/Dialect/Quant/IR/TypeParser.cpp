@@ -498,20 +498,20 @@ static void printStorageType(QuantizedType type, DialectAsmPrinter &out) {
   int64_t defaultMin =
       type.getStorageType().isa<IntegerType>()
           ? QuantizedType::getDefaultMinimumForInteger(isSigned, storageWidth)
-          : type.getStorageType().isa<Float8E5M2Type>()
-                ? QuantizedType::getDefaultMinimumForF8E5M2()
-                : type.getStorageType().isa<Float8E4M3FNType>()
-                      ? QuantizedType::getDefaultMinimumForF8E4M3FN()
-                      : std::numeric_limits<int64_t>::max();
+      : type.getStorageType().isa<Float8E5M2Type>()
+          ? QuantizedType::getDefaultMinimumForF8E5M2()
+      : type.getStorageType().isa<Float8E4M3FNType>()
+          ? QuantizedType::getDefaultMinimumForF8E4M3FN()
+          : std::numeric_limits<int64_t>::max();
 
   int64_t defaultMax =
       type.getStorageType().isa<IntegerType>()
           ? QuantizedType::getDefaultMaximumForInteger(isSigned, storageWidth)
-          : type.getStorageType().isa<Float8E5M2Type>()
-                ? QuantizedType::getDefaultMaximumForF8E5M2()
-                : type.getStorageType().isa<Float8E4M3FNType>()
-                      ? QuantizedType::getDefaultMaximumForF8E4M3FN()
-                      : std::numeric_limits<int64_t>::min();
+      : type.getStorageType().isa<Float8E5M2Type>()
+          ? QuantizedType::getDefaultMaximumForF8E5M2()
+      : type.getStorageType().isa<Float8E4M3FNType>()
+          ? QuantizedType::getDefaultMaximumForF8E4M3FN()
+          : std::numeric_limits<int64_t>::min();
 
   if (defaultMin != type.getStorageTypeMin() ||
       defaultMax != type.getStorageTypeMax()) {

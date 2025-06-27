@@ -630,9 +630,10 @@ LogicalResult mlir::MlirOptMain(llvm::raw_ostream &outputStream,
                                config.outputSplitMarker());
 }
 
-LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
-                                DialectRegistry &registry,
-                                const AdditionalRegistrationFn &additionalRegistration) {
+LogicalResult
+mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
+                  DialectRegistry &registry,
+                  const AdditionalRegistrationFn &additionalRegistration) {
   static cl::opt<std::string> inputFilename(
       cl::Positional, cl::desc("<input file>"), cl::init("-"));
 

@@ -271,10 +271,11 @@ bool TensorType::isValidElementType(Type type) {
 // RankedTensorType
 //===----------------------------------------------------------------------===//
 
-RankedTensorType RankedTensorType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
-                          Type elementType) const {
+RankedTensorType
+RankedTensorType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                            Type elementType) const {
   return RankedTensorType::get(shape.value_or(getShape()), elementType,
-                              getEncoding());
+                               getEncoding());
 }
 
 LogicalResult
@@ -295,7 +296,7 @@ RankedTensorType::verify(function_ref<InFlightDiagnostic()> emitError,
 //===----------------------------------------------------------------------===//
 
 TensorType UnrankedTensorType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
-                            Type elementType) const {
+                                         Type elementType) const {
   if (shape)
     return RankedTensorType::get(*shape, elementType);
 
@@ -395,7 +396,8 @@ bool mlir::detail::isSupportedMemorySpace(Attribute memorySpace) {
     return true;
 
   // Supported built-in attributes.
-  if (llvm::isa<IntegerAttr, StringAttr, DictionaryAttr, SymbolRefAttr, ArrayAttr>(memorySpace))
+  if (llvm::isa<IntegerAttr, StringAttr, DictionaryAttr, SymbolRefAttr,
+                ArrayAttr>(memorySpace))
     return true;
 
   // Allow custom dialect attributes.
@@ -432,7 +434,7 @@ unsigned mlir::detail::getMemorySpaceAsInt(Attribute memorySpace) {
 }
 
 MemRefType MemRefType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
-                                Type elementType) const {
+                                 Type elementType) const {
   MemRefType::Builder builder(llvm::cast<MemRefType>(*this));
   if (shape)
     builder.setShape(*shape);
@@ -764,7 +766,7 @@ static LogicalResult getStridesAndOffset(MemRefType t,
 }
 
 LogicalResult MemRefType::getStridesAndOffset(SmallVectorImpl<int64_t> &strides,
-                                        int64_t &offset) {
+                                              int64_t &offset) {
   // Happy path: the type uses the strided layout directly.
   if (auto strided = llvm::dyn_cast<StridedLayoutAttr>(getLayout())) {
     llvm::append_range(strides, strided.getStrides());
@@ -818,8 +820,9 @@ bool MemRefType::isLastDimUnitStride() {
 // UnrankedMemRefType
 //===----------------------------------------------------------------------===//
 
-BaseMemRefType UnrankedMemRefType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
-                            Type elementType) const {
+BaseMemRefType
+UnrankedMemRefType::cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                              Type elementType) const {
   if (!shape)
     return UnrankedMemRefType::get(elementType, getMemorySpace());
   MemRefType::Builder builder(*shape, elementType);
