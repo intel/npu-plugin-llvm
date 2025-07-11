@@ -748,10 +748,9 @@ struct PadOpInterface
     if (failed(maybeSrcBufferType))
       return failure();
     MemRefLayoutAttrInterface layout;
-    return cast<BaseMemRefType>(
-        MemRefType::get(padOp.getResultType().getShape(),
-                        padOp.getResultType().getElementType(), layout,
-                        maybeSrcBufferType->getMemorySpace()));
+    return cast<BaseMemRefType>(MemRefType::get(padOp.getResultType().getShape(),
+                           padOp.getResultType().getElementType(), layout,
+                           maybeSrcBufferType->getMemorySpace()));
   }
 
   LogicalResult bufferize(Operation *op, RewriterBase &rewriter,

@@ -401,9 +401,8 @@ public:
 };
 
 /// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
-/// look up table array of quantile values. The type of the data in the look up
-/// table is determined by the quantileType member: supported quantileType types
-/// are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// look up table array of quantile values. The type of the data in the look up table is determined by
+/// the quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
@@ -442,11 +441,12 @@ public:
              int64_t storageTypeMin, int64_t storageTypeMax);
 
   /// Verifies construction invariants and issues errors/warnings.
-  static LogicalResult
-  verifyInvariants(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
-                   Type storageType, Type quantileType, Type expressedType,
-                   ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
-                   int64_t storageTypeMin, int64_t storageTypeMax);
+  static LogicalResult verifyInvariants(function_ref<InFlightDiagnostic()> emitError,
+                              unsigned flags, Type storageType,
+                              Type quantileType, Type expressedType,
+                              ArrayRef<double> quantiles, double scale,
+                              int64_t zeroPoint, int64_t storageTypeMin,
+                              int64_t storageTypeMax);
 
   static bool classof(mlir::Type type);
 
@@ -468,9 +468,8 @@ public:
 };
 
 /// Represents per-axis QuantileQuantizedType (also known as per-channel
-/// quantization). The type of the data in the look up table is determined by
-/// the quantileType member: supported quantileType types are
-/// integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// quantization). The type of the data in the look up table is determined by the
+/// quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:
@@ -517,10 +516,10 @@ public:
   /// Verifies construction invariants and issues errors/warnings.
   static LogicalResult
   verifyInvariants(function_ref<InFlightDiagnostic()> emitError, unsigned flags,
-                   Type storageType, Type quantileType, Type expressedType,
-                   ArrayRef<double> quantiles, ArrayRef<double> scales,
-                   ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
-                   int64_t storageTypeMin, int64_t storageTypeMax);
+         Type storageType, Type quantileType, Type expressedType,
+         ArrayRef<double> quantiles, ArrayRef<double> scales,
+         ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+         int64_t storageTypeMin, int64_t storageTypeMax);
 
   static bool classof(mlir::Type type);
 

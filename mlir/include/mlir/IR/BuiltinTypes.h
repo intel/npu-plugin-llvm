@@ -250,7 +250,7 @@ enum class SliceVerificationResult {
 /// code.
 SliceVerificationResult isRankReducedType(ShapedType originalType,
                                           ShapedType candidateReducedType);
-
+                                          
 //===----------------------------------------------------------------------===//
 // Convenience wrappers for VectorType
 //

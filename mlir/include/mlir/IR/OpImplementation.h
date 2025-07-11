@@ -119,10 +119,10 @@ public:
   /// Print a newline and indent the printer to the start of the current
   /// operation.
   virtual void printNewline();
-
+  
   /// Increase indentation.
   virtual void increaseIndent();
-
+  
   /// Decrease indentation.
   virtual void decreaseIndent();
 

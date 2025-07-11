@@ -342,7 +342,7 @@ public:
   /// Copy the option values from 'other' into 'this', where 'other' has the
   /// same options as 'this'.
   void copyOptionValuesFrom(const PassOptions &other);
-
+  
   /// Copy only those options that have the same argument name.
   void matchAndCopyOptionValuesFrom(const PassOptions &otherPassOptions);
 
