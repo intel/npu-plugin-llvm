@@ -11,13 +11,14 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/Location.h"
+#include "mlir/IR/QuantizationInterface.h"
 #include "mlir/IR/Types.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-
+#include <iostream>
 using namespace mlir;
 using namespace quant;
 
@@ -28,17 +29,23 @@ static Type parseStorageType(DialectAsmParser &parser, bool &isSigned) {
   // Parse storage type (alpha_ident, integer_literal).
   StringRef identifier;
   unsigned storageTypeWidth = 0;
+  // type.print(llvm::outs());
+  std::cout << "BEFORE " << std::endl;
+  // llvm::outs() << "\n";
+
   OptionalParseResult result = parser.parseOptionalType(type);
   if (result.has_value()) {
     if (!succeeded(*result))
       return nullptr;
-    if (auto intType = llvm::dyn_cast<IntegerType>(type)) {
-      isSigned = !intType.isUnsigned();
-      storageTypeWidth = intType.getWidth();
-    } else if (llvm::dyn_cast<Float8E5M2Type>(type) ||
-               llvm::dyn_cast<Float8E4M3FNType>(type)) {
-      storageTypeWidth = 8;
-      isSigned = true;
+
+    if (auto quantizationInterface =
+            llvm::dyn_cast<QuantizationInterface>(type)) {
+      isSigned =
+          quantizationInterface.isStorageSigned(); // Change name or logic
+      storageTypeWidth = quantizationInterface.getStorageWidth();
+      std::cout << llvm::dyn_cast<mlir::IntegerType>(type).isSignless()
+                << " HERE: " << isSigned << " " << storageTypeWidth
+                << std::endl;
     } else {
       parser.emitError(typeLoc, "illegal quantized storage type alias");
       return nullptr;
@@ -128,16 +135,13 @@ static ParseResult parseStorageRange(DialectAsmParser &parser, Type storageType,
                                      bool isSigned, int64_t &storageTypeMin,
                                      int64_t &storageTypeMax) {
   int64_t defaultMin, defaultMax;
-  if (storageType.isa<IntegerType>()) {
-    const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
-    defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
-    defaultMax = QuantizedType::getDefaultMaximumForInteger(isSigned, width);
-  } else if (storageType.isa<Float8E5M2Type>()) {
-    defaultMin = QuantizedType::getDefaultMinimumForF8E5M2();
-    defaultMax = QuantizedType::getDefaultMaximumForF8E5M2();
-  } else if (storageType.isa<Float8E4M3FNType>()) {
-    defaultMin = QuantizedType::getDefaultMinimumForF8E4M3FN();
-    defaultMax = QuantizedType::getDefaultMaximumForF8E4M3FN();
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(storageType)) {
+    // const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+    const auto width = quantizationInterface.getStorageWidth();
+
+    defaultMin = quantizationInterface.getDefaultMinimum(isSigned, width);
+    defaultMax = quantizationInterface.getDefaultMaximum(isSigned, width);
   } else {
     defaultMin = std::numeric_limits<int64_t>::max();
     defaultMax = std::numeric_limits<int64_t>::min();
@@ -157,6 +161,7 @@ static ParseResult parseStorageRange(DialectAsmParser &parser, Type storageType,
       parser.parseInteger(storageTypeMax) || parser.parseGreater())
     return failure();
 
+  std::cout << "parseStorageRange OK" << std::endl;
   return checkStorageRange(parser, storageTypeMin, storageTypeMax, defaultMin,
                            defaultMax, minLoc, maxLoc);
 }
@@ -637,34 +642,21 @@ static void printStorageType(QuantizedType type, DialectAsmPrinter &out) {
   // storage type
   unsigned storageWidth = type.getStorageTypeIntegralWidth();
   bool isSigned = type.isSigned();
-  if (type.getStorageType().isa<Float8E5M2Type>()) {
-    out << "f8E5M2";
-  } else if (type.getStorageType().isa<Float8E4M3FNType>()) {
-    out << "f8E4M3FN";
-  } else if (isSigned) {
-    out << "i" << storageWidth;
+  int64_t defaultMin, defaultMax;
+
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(type.getStorageType())) {
+    out << quantizationInterface.printStorageType(isSigned, storageWidth);
+
+    defaultMin =
+        quantizationInterface.getDefaultMinimum(isSigned, storageWidth);
+    defaultMax =
+        quantizationInterface.getDefaultMaximum(isSigned, storageWidth);
+
   } else {
-    out << "u" << storageWidth;
+    defaultMin = std::numeric_limits<int64_t>::max();
+    defaultMax = std::numeric_limits<int64_t>::min();
   }
-
-  // storageTypeMin and storageTypeMax if not default.
-  int64_t defaultMin =
-      type.getStorageType().isa<IntegerType>()
-          ? QuantizedType::getDefaultMinimumForInteger(isSigned, storageWidth)
-          : type.getStorageType().isa<Float8E5M2Type>()
-                ? QuantizedType::getDefaultMinimumForF8E5M2()
-                : type.getStorageType().isa<Float8E4M3FNType>()
-                      ? QuantizedType::getDefaultMinimumForF8E4M3FN()
-                      : std::numeric_limits<int64_t>::max();
-
-  int64_t defaultMax =
-      type.getStorageType().isa<IntegerType>()
-          ? QuantizedType::getDefaultMaximumForInteger(isSigned, storageWidth)
-          : type.getStorageType().isa<Float8E5M2Type>()
-                ? QuantizedType::getDefaultMaximumForF8E5M2()
-                : type.getStorageType().isa<Float8E4M3FNType>()
-                      ? QuantizedType::getDefaultMaximumForF8E4M3FN()
-                      : std::numeric_limits<int64_t>::min();
 
   if (defaultMin != type.getStorageTypeMin() ||
       defaultMax != type.getStorageTypeMax()) {

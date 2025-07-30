@@ -49,6 +49,9 @@ class ValueSemantics
 // Tablegen Type Declarations
 //===----------------------------------------------------------------------===//
 
+// Include QuantizationInterface before BuiltinTypes to resolve dependencies
+#include "mlir/IR/QuantizationInterface.h"
+
 #define GET_TYPEDEF_CLASSES
 #include "mlir/IR/BuiltinTypes.h.inc"
 

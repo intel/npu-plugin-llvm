@@ -9,6 +9,8 @@ mlir_tablegen(OpAsmTypeInterface.cpp.inc -gen-type-interface-defs)
 add_public_tablegen_target(MLIROpAsmInterfaceIncGen)
 add_dependencies(mlir-generic-headers MLIROpAsmInterfaceIncGen)
 
+add_mlir_type_interface(QuantizationInterface)
+
 set(LLVM_TARGET_DEFINITIONS BuiltinAttributes.td)
 mlir_tablegen(BuiltinAttributes.h.inc -gen-attrdef-decls)
 mlir_tablegen(BuiltinAttributes.cpp.inc -gen-attrdef-defs)

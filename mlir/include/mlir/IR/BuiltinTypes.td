@@ -18,6 +18,7 @@ include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/BuiltinDialect.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 include "mlir/IR/CommonTypeConstraints.td"
+include "mlir/IR/QuantizationInterface.td"
 
 // TODO: Currently the types defined in this file are prefixed with `Builtin_`.
 // This is to differentiate the types here with the ones in OpBase.td. We should
@@ -79,7 +80,7 @@ def Builtin_Complex : Builtin_Type<"Complex", "complex"> {
 //===----------------------------------------------------------------------===//
 
 // Base class for Builtin dialect float types.
-class Builtin_FloatType<string name, string mnemonic,
+class Builtin_FloatType<string name, string mnemonic, list<Trait> traits = [],
                         list<string> declaredInterfaceMethods = []>
     : Builtin_Type<name, mnemonic, /*traits=*/[
         DeclareTypeInterfaceMethods<
@@ -90,7 +91,7 @@ class Builtin_FloatType<string name, string mnemonic,
 // Float types that are cached in MLIRContext.
 class Builtin_CachedFloatType<string name, string mnemonic,
                               list<string> declaredInterfaceMethods = []>
-    : Builtin_FloatType<name, mnemonic, declaredInterfaceMethods> {
+    : Builtin_FloatType<name, mnemonic, [], declaredInterfaceMethods> {
   let extraClassDeclaration = [{
     static }] # name # [{Type get(MLIRContext *context);
   }];
@@ -99,7 +100,8 @@ class Builtin_CachedFloatType<string name, string mnemonic,
 //===----------------------------------------------------------------------===//
 // Float8E5M2Type
 
-def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2"> {
+def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2", 
+                                   [QuantizationInterface]> {
   let summary = "8-bit floating point with 2 bit mantissa";
   let description = [{
     An 8-bit floating point type with 1 sign bit, 5 bits exponent and 2 bits
@@ -114,6 +116,21 @@ def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2"> {
       * denormals when exponent is 0
 
     Described in: https://arxiv.org/abs/2209.05433
+  }];
+
+  let extraClassDeclaration = [{
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return true; }
+    unsigned getStorageWidth() const { return 8; }
+    int64_t getDefaultMaximum([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned integralWidth) const {
+      return 448;
+    }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const {
+      return -getDefaultMaximum(isSigned, integralWidth);
+    }
+    std::string printStorageType([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned storageWidth) const {
+      return "f8E5M2";
+    }
   }];
 }
 
@@ -139,7 +156,8 @@ def Builtin_Float8E4M3 : Builtin_FloatType<"Float8E4M3", "f8E4M3"> {
 //===----------------------------------------------------------------------===//
 // Float8E4M3FNType
 
-def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN"> {
+def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN", 
+                                   [QuantizationInterface]> {
   let summary = "8-bit floating point with 3 bit mantissa";
   let description = [{
     An 8-bit floating point type with 1 sign bit, 4 bits exponent and 3 bits
@@ -155,6 +173,21 @@ def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN"> {
       * denormals when exponent is 0
 
     Described in: https://arxiv.org/abs/2209.05433
+  }];
+
+  let extraClassDeclaration = [{
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return true; }
+    unsigned getStorageWidth() const { return 8; }
+    int64_t getDefaultMaximum([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned integralWidth) const {
+      return 57344;
+    }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const{
+      return -getDefaultMaximum(isSigned, integralWidth);
+    }
+    std::string printStorageType([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned storageWidth) const {
+      return "f8E4M3FN";
+    }
   }];
 }
 
@@ -477,7 +510,8 @@ def Builtin_Index : Builtin_Type<"Index", "index"> {
 // IntegerType
 //===----------------------------------------------------------------------===//
 
-def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
+def Builtin_Integer : Builtin_Type<"Integer", "integer", 
+                                   [QuantizationInterface]> {
   let summary = "Integer type with arbitrary precision up to a fixed limit";
   let description = [{
     Syntax:
@@ -534,6 +568,25 @@ def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
     /// Integer representation maximal bitwidth.
     /// Note: This is aligned with the maximum width of llvm::IntegerType.
     static constexpr unsigned kMaxWidth = (1 << 24) - 1;
+
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return !isUnsigned(); }
+    unsigned getStorageWidth() const { return getWidth(); }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const {
+      if (isSigned) {
+        return llvm::minIntN(integralWidth);
+      }
+      return 0;
+    }
+    int64_t getDefaultMaximum(bool isSigned, unsigned integralWidth) const {
+      if (isSigned) {
+        return llvm::maxIntN(integralWidth);
+      }
+      return llvm::maxUIntN(integralWidth);
+    }
+    std::string printStorageType(bool isSigned, unsigned storageWidth) const {
+      return (isSigned ? "i" : "u") + std::to_string(storageWidth);
+    }
   }];
 }
 
