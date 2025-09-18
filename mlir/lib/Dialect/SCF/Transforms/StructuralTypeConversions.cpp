@@ -211,6 +211,33 @@ public:
 } // namespace
 
 namespace {
+class ConvertIndexSwitchOpTypes
+    : public Structural1ToNConversionPattern<IndexSwitchOp, ConvertIndexSwitchOpTypes> {
+public:
+  using Structural1ToNConversionPattern::Structural1ToNConversionPattern;
+
+  std::optional<IndexSwitchOp> convertSourceOp(IndexSwitchOp op, OpAdaptor adaptor,
+                                         ConversionPatternRewriter &rewriter,
+                                         TypeRange dstTypes) const {
+    // Unpacked the iteration arguments.
+    SmallVector<Value> flatArgs;
+    for (Value arg : adaptor.getOperands())
+      unpackUnrealizedConversionCast(arg, flatArgs);
+
+    auto newOp = rewriter.create<IndexSwitchOp>(op.getLoc(), dstTypes, flatArgs[0], op.getCases(), op.getCases().size());
+
+    for (unsigned i = 0u; i < op.getNumRegions(); i++) {
+      if (failed(rewriter.convertRegionTypes(&op.getRegion(i), *typeConverter)))
+        return std::nullopt;
+      auto &dstRegion = newOp.getRegion(i);
+      rewriter.inlineRegionBefore(op.getRegion(i), dstRegion, dstRegion.end());
+    }
+    return newOp;
+  }
+};
+} // namespace
+
+namespace {
 // When the result types of a ForOp/IfOp get changed, the operand types of the
 // corresponding yield op need to be changed. In order to trigger the
 // appropriate type conversions / materializations, we need a dummy pattern.
@@ -250,19 +277,19 @@ public:
 void mlir::scf::populateSCFStructuralTypeConversions(
     TypeConverter &typeConverter, RewritePatternSet &patterns) {
   patterns.add<ConvertForOpTypes, ConvertIfOpTypes, ConvertYieldOpTypes,
-               ConvertWhileOpTypes, ConvertConditionOpTypes>(
+               ConvertWhileOpTypes, ConvertConditionOpTypes, ConvertIndexSwitchOpTypes>(
       typeConverter, patterns.getContext());
 }
 
 void mlir::scf::populateSCFStructuralTypeConversionTarget(
     const TypeConverter &typeConverter, ConversionTarget &target) {
-  target.addDynamicallyLegalOp<ForOp, IfOp>([&](Operation *op) {
+  target.addDynamicallyLegalOp<ForOp, IfOp, IndexSwitchOp>([&](Operation *op) {
     return typeConverter.isLegal(op->getResultTypes());
   });
   target.addDynamicallyLegalOp<scf::YieldOp>([&](scf::YieldOp op) {
     // We only have conversions for a subset of ops that use scf.yield
     // terminators.
-    if (!isa<ForOp, IfOp, WhileOp>(op->getParentOp()))
+    if (!isa<ForOp, IfOp, WhileOp, IndexSwitchOp>(op->getParentOp()))
       return true;
     return typeConverter.isLegal(op.getOperandTypes());
   });
