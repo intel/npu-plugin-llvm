@@ -16,3 +16,48 @@ updates:
       llvm-docs-requirements:
         patterns:
           - "*"
+
+  - package-ecosystem: docker
+    directory: /.github/workflows/containers/github-action-ci
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /bolt/utils/docker
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /clang/tools/clang-format-vs/ClangFormat
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /clang/tools/clang-fuzzer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /clang/utils/analyzer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /clang/utils/analyzer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /flang/examples/FlangOmpReport
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /libc/utils/buildbot
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /libcxx/utils/ci
+    schedule:
+      interval: daily

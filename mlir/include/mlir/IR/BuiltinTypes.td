@@ -18,6 +18,7 @@ include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/BuiltinDialect.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 include "mlir/IR/CommonTypeConstraints.td"
+include "mlir/IR/QuantizationInterface.td"
 
 // TODO: Currently the types defined in this file are prefixed with `Builtin_`.
 // This is to differentiate the types here with the ones in OpBase.td. We should
@@ -79,7 +80,7 @@ def Builtin_Complex : Builtin_Type<"Complex", "complex"> {
 //===----------------------------------------------------------------------===//
 
 // Base class for Builtin dialect float types.
-class Builtin_FloatType<string name, string mnemonic,
+class Builtin_FloatType<string name, string mnemonic, list<Trait> traits = [],
                         list<string> declaredInterfaceMethods = []>
     : Builtin_Type<name, mnemonic, /*traits=*/[
         DeclareTypeInterfaceMethods<
@@ -90,7 +91,7 @@ class Builtin_FloatType<string name, string mnemonic,
 // Float types that are cached in MLIRContext.
 class Builtin_CachedFloatType<string name, string mnemonic,
                               list<string> declaredInterfaceMethods = []>
-    : Builtin_FloatType<name, mnemonic, declaredInterfaceMethods> {
+    : Builtin_FloatType<name, mnemonic, [], declaredInterfaceMethods> {
   let extraClassDeclaration = [{
     static }] # name # [{Type get(MLIRContext *context);
   }];
@@ -99,7 +100,8 @@ class Builtin_CachedFloatType<string name, string mnemonic,
 //===----------------------------------------------------------------------===//
 // Float8E5M2Type
 
-def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2"> {
+def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2", 
+                                   [QuantizationInterface]> {
   let summary = "8-bit floating point with 2 bit mantissa";
   let description = [{
     An 8-bit floating point type with 1 sign bit, 5 bits exponent and 2 bits
@@ -114,6 +116,21 @@ def Builtin_Float8E5M2 : Builtin_FloatType<"Float8E5M2", "f8E5M2"> {
       * denormals when exponent is 0
 
     Described in: https://arxiv.org/abs/2209.05433
+  }];
+
+  let extraClassDeclaration = [{
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return true; }
+    unsigned getStorageWidth() const { return 8; }
+    int64_t getDefaultMaximum([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned integralWidth) const {
+      return 448;
+    }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const {
+      return -getDefaultMaximum(isSigned, integralWidth);
+    }
+    std::string printStorageType([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned storageWidth) const {
+      return "f8E5M2";
+    }
   }];
 }
 
@@ -139,7 +156,8 @@ def Builtin_Float8E4M3 : Builtin_FloatType<"Float8E4M3", "f8E4M3"> {
 //===----------------------------------------------------------------------===//
 // Float8E4M3FNType
 
-def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN"> {
+def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN", 
+                                   [QuantizationInterface]> {
   let summary = "8-bit floating point with 3 bit mantissa";
   let description = [{
     An 8-bit floating point type with 1 sign bit, 4 bits exponent and 3 bits
@@ -155,6 +173,21 @@ def Builtin_Float8E4M3FN : Builtin_FloatType<"Float8E4M3FN", "f8E4M3FN"> {
       * denormals when exponent is 0
 
     Described in: https://arxiv.org/abs/2209.05433
+  }];
+
+  let extraClassDeclaration = [{
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return true; }
+    unsigned getStorageWidth() const { return 8; }
+    int64_t getDefaultMaximum([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned integralWidth) const {
+      return 57344;
+    }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const{
+      return -getDefaultMaximum(isSigned, integralWidth);
+    }
+    std::string printStorageType([[maybe_unused]] bool isSigned, [[maybe_unused]] unsigned storageWidth) const {
+      return "f8E4M3FN";
+    }
   }];
 }
 
@@ -477,7 +510,8 @@ def Builtin_Index : Builtin_Type<"Index", "index"> {
 // IntegerType
 //===----------------------------------------------------------------------===//
 
-def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
+def Builtin_Integer : Builtin_Type<"Integer", "integer", 
+                                   [QuantizationInterface]> {
   let summary = "Integer type with arbitrary precision up to a fixed limit";
   let description = [{
     Syntax:
@@ -534,6 +568,25 @@ def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
     /// Integer representation maximal bitwidth.
     /// Note: This is aligned with the maximum width of llvm::IntegerType.
     static constexpr unsigned kMaxWidth = (1 << 24) - 1;
+
+    /// QuantizationInterface method implementations
+    bool isStorageSigned() const { return !isUnsigned(); }
+    unsigned getStorageWidth() const { return getWidth(); }
+    int64_t getDefaultMinimum(bool isSigned, unsigned integralWidth) const {
+      if (isSigned) {
+        return llvm::minIntN(integralWidth);
+      }
+      return 0;
+    }
+    int64_t getDefaultMaximum(bool isSigned, unsigned integralWidth) const {
+      if (isSigned) {
+        return llvm::maxIntN(integralWidth);
+      }
+      return llvm::maxUIntN(integralWidth);
+    }
+    std::string printStorageType(bool isSigned, unsigned storageWidth) const {
+      return (isSigned ? "i" : "u") + std::to_string(storageWidth);
+    }
   }];
 }
 
@@ -542,8 +595,8 @@ def Builtin_Integer : Builtin_Type<"Integer", "integer"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_MemRef : Builtin_Type<"MemRef", "memref", [
-    ShapedTypeInterface
-  ], "BaseMemRefType"> {
+    BaseMemRefTypeInterface
+  ]> {
   let summary = "Shaped reference to a region of memory";
   let description = [{
     Syntax:
@@ -794,7 +847,7 @@ def Builtin_MemRef : Builtin_Type<"MemRef", "memref", [
       "unsigned":$memorySpaceInd)>
   ];
   let extraClassDeclaration = [{
-    using BaseMemRefType::clone;
+    using ShapedType::Trait<MemRefType>::clone;
     using ShapedType::Trait<MemRefType>::getElementTypeBitWidth;
     using ShapedType::Trait<MemRefType>::getRank;
     using ShapedType::Trait<MemRefType>::getNumElements;
@@ -827,6 +880,14 @@ def Builtin_MemRef : Builtin_Type<"MemRef", "memref", [
     /// [deprecated] Returns the memory space in old raw integer representation.
     /// New `Attribute getMemorySpace()` method should be used instead.
     unsigned getMemorySpaceAsInt() const;
+
+    /// Returns if this type is ranked (always true).
+    bool hasRank() const { return true; }
+
+    ///   Returns a clone of this type with the given shape and element
+    ///   type. If a shape is not provided, the current shape of the type is used.
+    MemRefType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                    Type elementType) const;
 
     /// Returns the strides of the MemRef if the layout map is in strided form.
     /// MemRefs with a layout map in strided form include:
@@ -934,8 +995,8 @@ def Builtin_Opaque : Builtin_Type<"Opaque", "opaque"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_RankedTensor : Builtin_Type<"RankedTensor", "tensor", [
-    ShapedTypeInterface, ValueSemantics
-  ], "TensorType"> {
+    TensorTypeInterface, ValueSemantics
+  ]> {
   let summary = "Multi-dimensional array with a fixed number of dimensions";
   let description = [{
     Syntax:
@@ -1016,7 +1077,7 @@ def Builtin_RankedTensor : Builtin_Type<"RankedTensor", "tensor", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using TensorType::clone;
+    using ShapedType::Trait<RankedTensorType>::clone;
     using ShapedType::Trait<RankedTensorType>::getElementTypeBitWidth;
     using ShapedType::Trait<RankedTensorType>::getRank;
     using ShapedType::Trait<RankedTensorType>::getNumElements;
@@ -1030,11 +1091,12 @@ def Builtin_RankedTensor : Builtin_Type<"RankedTensor", "tensor", [
     /// Arguments that are passed into the builder must outlive the builder.
     class Builder;
 
-    /// Return a clone of this type with the given new element type and the same
-    /// shape as this type.
-    RankedTensorType clone(::mlir::Type elementType) {
-      return ::llvm::cast<RankedTensorType>(cloneWith(getShape(), elementType));
-    }
+    /// Returns if this type is ranked (always true).
+    bool hasRank() const { return true; }
+
+    ///   Returns a clone of this type with the given shape and element type.
+    RankedTensorType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                              Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -1112,8 +1174,8 @@ def Builtin_Tuple : Builtin_Type<"Tuple", "tuple"> {
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
-    ShapedTypeInterface
-  ], "BaseMemRefType"> {
+    BaseMemRefTypeInterface
+  ]> {
   let summary = "Shaped reference, with unknown rank, to a region of memory";
   let description = [{
     Syntax:
@@ -1159,7 +1221,7 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using BaseMemRefType::clone;
+    using ShapedType::Trait<UnrankedMemRefType>::clone;
     using ShapedType::Trait<UnrankedMemRefType>::getElementTypeBitWidth;
     using ShapedType::Trait<UnrankedMemRefType>::getRank;
     using ShapedType::Trait<UnrankedMemRefType>::getNumElements;
@@ -1175,11 +1237,12 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
     /// New `Attribute getMemorySpace()` method should be used instead.
     unsigned getMemorySpaceAsInt() const;
 
-    /// Return a clone of this type with the given new element type and the same
-    /// shape as this type.
-    MemRefType clone(::mlir::Type elementType) {
-      return ::llvm::cast<MemRefType>(cloneWith(getShape(), elementType));
-    }
+    /// Returns if this type is ranked (always false).
+    bool hasRank() const { return false; }
+
+    ///   Returns a clone of this type with the given shape and element type.
+    BaseMemRefType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -1190,8 +1253,8 @@ def Builtin_UnrankedMemRef : Builtin_Type<"UnrankedMemRef", "unranked_memref", [
 //===----------------------------------------------------------------------===//
 
 def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", "unranked_tensor", [
-    ShapedTypeInterface, ValueSemantics
-  ], "TensorType"> {
+    TensorTypeInterface, ValueSemantics
+  ]> {
   let summary = "Multi-dimensional array with unknown dimensions";
   let description = [{
     Syntax:
@@ -1218,7 +1281,7 @@ def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", "unranked_tensor", [
     }]>
   ];
   let extraClassDeclaration = [{
-    using TensorType::clone;
+    using ShapedType::Trait<UnrankedTensorType>::clone;
     using ShapedType::Trait<UnrankedTensorType>::getElementTypeBitWidth;
     using ShapedType::Trait<UnrankedTensorType>::getRank;
     using ShapedType::Trait<UnrankedTensorType>::getNumElements;
@@ -1229,6 +1292,13 @@ def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", "unranked_tensor", [
     using ShapedType::Trait<UnrankedTensorType>::getDynamicDimIndex;
 
     ArrayRef<int64_t> getShape() const { return std::nullopt; }
+
+    /// Returns if this type is ranked (always false).
+    bool hasRank() const { return false; }
+
+    /// Returns a clone of this type with the given shape and element type.
+    TensorType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                                Type elementType) const;
   }];
   let skipDefaultBuilders = 1;
   let genVerifyDecl = 1;
@@ -1237,10 +1307,6 @@ def Builtin_UnrankedTensor : Builtin_Type<"UnrankedTensor", "unranked_tensor", [
 //===----------------------------------------------------------------------===//
 // VectorType
 //===----------------------------------------------------------------------===//
-
-def Builtin_VectorTypeElementType : AnyTypeOf<[AnyInteger, Index, AnyFloat]> {
-  let cppFunctionName = "isValidVectorTypeElementType";
-}
 
 def Builtin_Vector : Builtin_Type<"Vector", "vector",
     [ShapedTypeInterface, ValueSemantics], "Type"> {
@@ -1292,7 +1358,7 @@ def Builtin_Vector : Builtin_Type<"Vector", "vector",
   }];
   let parameters = (ins
     ArrayRefParameter<"int64_t">:$shape,
-    Builtin_VectorTypeElementType:$elementType,
+    "Type":$elementType,
     ArrayRefParameter<"bool">:$scalableDims
   );
   let builders = [
@@ -1316,8 +1382,11 @@ def Builtin_Vector : Builtin_Type<"Vector", "vector",
     class Builder;
 
     /// Returns true if the given type can be used as an element of a vector
-    /// type. See "Builtin_VectorTypeElementType" for allowed types.
-    static bool isValidElementType(Type t);
+    /// type. In particular, vectors can consist of integer, index, or float
+    /// primitives.
+    static bool isValidElementType(Type t) {
+      return ::llvm::isa<IntegerType, IndexType, FloatType>(t);
+    }
 
     /// Returns true if the vector contains scalable dimensions.
     bool isScalable() const {

@@ -37,12 +37,12 @@
 
 // -----
 // Unrecognized storage type: illegal prefix
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<int8<-4:3>:f32, 0.99872:127>
 
 // -----
 // Unrecognized storage type: no width
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -52,7 +52,7 @@
 
 // -----
 // Unrecognized storage type: storage size < 0
-// expected-error@+1 {{illegal storage type prefix}}
+// expected-error@+1 {{illegal quantized storage type alias}}
 !qalias = !quant.uniform<i-1<-4:3>:f32, 0.99872:127>
 
 // -----
@@ -81,6 +81,26 @@
 !qalias = !quant.uniform<i4<-9:1>:f32, 0.99872:127>
 
 // -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 60000}}
+!qalias = !quant.uniform<f8E5M2<-57344:60000>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -60000}}
+!qalias = !quant.uniform<f8E5M2<-60000:57344>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 500}}
+!qalias = !quant.uniform<f8E4M3FN<-448:500>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -500}}
+!qalias = !quant.uniform<f8E4M3FN<-500:448>:f32, 0.99872:127>
+
+// -----
 // Illegal uniform params: invalid scale
 // expected-error@+1 {{expected floating point literal}}
 !qalias = !quant.uniform<i8<-4:3>:f32, abc:127>
@@ -106,11 +126,6 @@
 !qalias = !quant.uniform<i8<-4:3>:f33, 0.99872:127>
 
 // -----
-// Illegal scale: negative
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8<-4:3>:f32, -1.0:127>
-
-// -----
 // Illegal uniform params: missing quantized dimension
 // expected-error@+1 {{expected integer value}}
 !qalias = !quant.uniform<i8<-4:3>:f32:, {2.000000e+02:-19.987200e-01:1}>
@@ -121,27 +136,103 @@
 // expected-error@+1 {{expected floating point literal}}
 !qalias = !quant.uniform<i8<-4:3>:f32, {2.000000e+02,-19.987200e-01:1}>
 
-// -----
-// Illegal negative axis in per-axis quantization
-// expected-error@+1 {{illegal quantized dimension: -1}}
-!qalias = !quant.uniform<i8:f32:-1, {2.0,3.0:1}>
-
-// -----
-// Scale f16 underflow
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8:f16, 5.8e-8>
 
 // -----
 // Scale f16 overflow
-// expected-error@+1 {{scale out of expressed type range}}
+// expected-error@+1 {{scale 6.600000e+04 out of expressed type range}}
 !qalias = !quant.uniform<i8:f16, 6.6e4>
 
 // -----
-// Scale f16 underflow in per-axis quantization
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8:f16:1, {2.0,5.8e-8}>
+// Scale f16 overflow in per-axis quantization
+// expected-error@+1 {{scale 6.600000e+04 out of expressed type range}}
+!qalias = !quant.uniform<i8:f16:1, {2.0,6.6e4}>
 
 // -----
-// Scale f16 overflow in per-axis quantization
-// expected-error@+1 {{scale out of expressed type range}}
-!qalias = !quant.uniform<i8:f16:1, {2.0,6.6e4}>
+// Illegal negative axis in sub-channel quantization
+// expected-error@+1 {{illegal quantized dimension: -1}}
+!qalias = !quant.uniform<u8:f32:{0:1,-1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Illegal zero block-size in sub-channel quantization
+// expected-error@+1 {{illegal block size: 0}}
+!qalias = !quant.uniform<u8:f32:{0:0,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Illegal negative block-size in sub-channel quantization
+// expected-error@+1 {{illegal block size: -1}}
+!qalias = !quant.uniform<u8:f32:{0:-1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing block size in sub-channel quantization
+// expected-error@+1 {{expected ':'}}
+!qalias = !quant.uniform<u8:f32:{0,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing quantization dimension in sub-channel quantization
+// expected-error@+1 {{expected integer value}}
+!qalias = !quant.uniform<u8:f32:{:1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Invalid tensor literal structure in sub-channel quantization
+// expected-error@+2 {{expected '>'}}
+!qalias = !quant.uniform<u8:f32:{0:1,1:2},
+    {2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}>
+
+// -----
+// Ragged tensor literal in sub-channel quantization
+// expected-error@+2 {{ranks are not consistent between elements}}
+!qalias = !quant.uniform<u8:f32:{0:1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02}}>
+
+// -----
+// Missing braces around block-size information in sub-channel quantization
+// expected-error@+1 {{expected ','}}
+!qalias = !quant.uniform<u8:f32:0:1,1:2,
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing right-brace around block-size information in sub-channel quantization
+// expected-error@+1 {{unbalanced '{' character}}
+!qalias = !quant.uniform<u8:f32:{0:1,1:2,
+      {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing left-brace around block-size information in sub-channel quantization
+// expected-error@+1 {{unbalanced '<' character}}
+!qalias = !quant.uniform<u8:f32:0:1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing Axis:BlockSize pair
+// expected-error@+1 {{expected integer value}}
+!qalias = !quant.uniform<u8:f32:{0:1,},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01}}>
+
+// -----
+// Missing Scale:ZeroPoint pair
+// expected-error@+2 {{expected floating point literal}}
+!qalias = !quant.uniform<u8:f32:{0:1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,}}>
+
+// -----
+// Missing ZeroPoint in Scale:ZeroPoint pair
+// expected-error@+2 {{expected integer value}}
+!qalias = !quant.uniform<u8:f32:{0:1,1:2},
+    {{2.000000e+02:120,9.987200e-01:127}, {2.000000e+02,9.987200e-01:}}>
+
+// -----
+// Empty quantization paramaters in sub-channel quantization
+// expected-error@+1 {{expected floating point literal}}
+!qalias = !quant.uniform<u8:f32:{0:1, 1:2}, {}>
+
+// -----
+// Scale out of expressed type range in sub-channel quantization
+// expected-error@+2 {{scale 6.600000e+04 out of expressed type range}}
+!qalias = !quant.uniform<i8:f16:{0:1,1:2},
+    {{6.6e4:120,9.987200e-01:127}, {2.000000e+02:256,9.987200e-01}}>
+
