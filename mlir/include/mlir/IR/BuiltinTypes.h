@@ -43,6 +43,108 @@ template <typename ConcreteType>
 class ValueSemantics
     : public TypeTrait::TraitBase<ConcreteType, ValueSemantics> {};
 
+//===----------------------------------------------------------------------===//
+// TensorType
+//===----------------------------------------------------------------------===//
+
+/// Tensor types represent multi-dimensional arrays, and have two variants:
+/// RankedTensorType and UnrankedTensorType.
+/// Note: This class attaches the ShapedType trait to act as a mixin to
+///       provide many useful utility functions. This inheritance has no effect
+///       on derived tensor types.
+class TensorType : public Type, public ShapedType::Trait<TensorType> {
+public:
+  using Type::Type;
+
+  /// Returns the element type of this tensor type.
+  Type getElementType() const;
+
+  /// Returns if this type is ranked, i.e. it has a known number of dimensions.
+  bool hasRank() const;
+
+  /// Returns the shape of this tensor type.
+  ArrayRef<int64_t> getShape() const;
+
+  /// Clone this type with the given shape and element type. If the
+  /// provided shape is `std::nullopt`, the current shape of the type is used.
+  TensorType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                       Type elementType) const;
+
+  // Make sure that base class overloads are visible.
+  using ShapedType::Trait<TensorType>::clone;
+
+  /// Return a clone of this type with the given new shape and element type.
+  /// The returned type is ranked, even if this type is unranked.
+  RankedTensorType clone(ArrayRef<int64_t> shape, Type elementType) const;
+
+  /// Return a clone of this type with the given new shape. The returned type
+  /// is ranked, even if this type is unranked.
+  RankedTensorType clone(ArrayRef<int64_t> shape) const;
+
+  /// Return true if the specified element type is ok in a tensor.
+  static bool isValidElementType(Type type);
+
+  /// Methods for support type inquiry through isa, cast, and dyn_cast.
+  static bool classof(Type type);
+
+  /// Allow implicit conversion to ShapedType.
+  operator ShapedType() const { return llvm::cast<ShapedType>(*this); }
+};
+
+//===----------------------------------------------------------------------===//
+// BaseMemRefType
+//===----------------------------------------------------------------------===//
+
+/// This class provides a shared interface for ranked and unranked memref types.
+/// Note: This class attaches the ShapedType trait to act as a mixin to
+///       provide many useful utility functions. This inheritance has no effect
+///       on derived memref types.
+class BaseMemRefType : public Type, public ShapedType::Trait<BaseMemRefType> {
+public:
+  using Type::Type;
+
+  /// Returns the element type of this memref type.
+  Type getElementType() const;
+
+  /// Returns if this type is ranked, i.e. it has a known number of dimensions.
+  bool hasRank() const;
+
+  /// Returns the shape of this memref type.
+  ArrayRef<int64_t> getShape() const;
+
+  /// Clone this type with the given shape and element type. If the
+  /// provided shape is `std::nullopt`, the current shape of the type is used.
+  BaseMemRefType cloneWith(std::optional<ArrayRef<int64_t>> shape,
+                           Type elementType) const;
+
+  // Make sure that base class overloads are visible.
+  using ShapedType::Trait<BaseMemRefType>::clone;
+
+  /// Return a clone of this type with the given new shape and element type.
+  /// The returned type is ranked, even if this type is unranked.
+  MemRefType clone(ArrayRef<int64_t> shape, Type elementType) const;
+
+  /// Return a clone of this type with the given new shape. The returned type
+  /// is ranked, even if this type is unranked.
+  MemRefType clone(ArrayRef<int64_t> shape) const;
+
+  /// Return true if the specified element type is ok in a memref.
+  static bool isValidElementType(Type type);
+
+  /// Methods for support type inquiry through isa, cast, and dyn_cast.
+  static bool classof(Type type);
+
+  /// Returns the memory space in which data referred to by this memref resides.
+  Attribute getMemorySpace() const;
+
+  /// [deprecated] Returns the memory space in old raw integer representation.
+  /// New `Attribute getMemorySpace()` method should be used instead.
+  unsigned getMemorySpaceAsInt() const;
+
+  /// Allow implicit conversion to ShapedType.
+  operator ShapedType() const { return llvm::cast<ShapedType>(*this); }
+};
+
 } // namespace mlir
 
 //===----------------------------------------------------------------------===//
@@ -53,6 +155,7 @@ class ValueSemantics
 #include "mlir/IR/BuiltinTypes.h.inc"
 
 namespace mlir {
+#include "mlir/IR/BuiltinTypeConstraints.h.inc"
 
 //===----------------------------------------------------------------------===//
 // MemRefType
@@ -250,7 +353,7 @@ enum class SliceVerificationResult {
 /// code.
 SliceVerificationResult isRankReducedType(ShapedType originalType,
                                           ShapedType candidateReducedType);
-                                          
+
 //===----------------------------------------------------------------------===//
 // Convenience wrappers for VectorType
 //
@@ -287,6 +390,10 @@ public:
 // Deferred Method Definitions
 //===----------------------------------------------------------------------===//
 
+inline bool BaseMemRefType::classof(Type type) {
+  return llvm::isa<MemRefType, UnrankedMemRefType>(type);
+}
+
 inline bool BaseMemRefType::isValidElementType(Type type) {
   return type.isIntOrIndexOrFloat() ||
          llvm::isa<ComplexType, MemRefType, VectorType, UnrankedMemRefType>(
@@ -294,36 +401,13 @@ inline bool BaseMemRefType::isValidElementType(Type type) {
          llvm::isa<MemRefElementTypeInterface>(type);
 }
 
+inline bool TensorType::classof(Type type) {
+  return llvm::isa<RankedTensorType, UnrankedTensorType>(type);
+}
+
 //===----------------------------------------------------------------------===//
 // Type Utilities
 //===----------------------------------------------------------------------===//
-
-/// Returns the strides of the MemRef if the layout map is in strided form.
-/// MemRefs with a layout map in strided form include:
-///   1. empty or identity layout map, in which case the stride information is
-///      the canonical form computed from sizes;
-///   2. a StridedLayoutAttr layout;
-///   3. any other layout that be converted into a single affine map layout of
-///      the form `K + k0 * d0 + ... kn * dn`, where K and ki's are constants or
-///      symbols.
-///
-/// A stride specification is a list of integer values that are either static
-/// or dynamic (encoded with ShapedType::kDynamic). Strides encode
-/// the distance in the number of elements between successive entries along a
-/// particular dimension.
-LogicalResult getStridesAndOffset(MemRefType t,
-                                  SmallVectorImpl<int64_t> &strides,
-                                  int64_t &offset);
-
-/// Wrapper around getStridesAndOffset(MemRefType, SmallVectorImpl<int64_t>,
-/// int64_t) that will assert if the logical result is not succeeded.
-std::pair<SmallVector<int64_t>, int64_t> getStridesAndOffset(MemRefType t);
-
-/// Return a version of `t` with identity layout if it can be determined
-/// statically that the layout is the canonical contiguous strided layout.
-/// Otherwise pass `t`'s layout into `simplifyAffineMap` and return a copy of
-/// `t` with simplified layout.
-MemRefType canonicalizeStridedLayout(MemRefType t);
 
 /// Given MemRef `sizes` that are either static or dynamic, returns the
 /// canonical "contiguous" strides AffineExpr. Strides are multiplicative and
@@ -347,24 +431,6 @@ AffineExpr makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
 /// where `exprs` is {d0, d1, .., d_(sizes.size()-1)}
 AffineExpr makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
                                           MLIRContext *context);
-
-/// Return "true" if the layout for `t` is compatible with strided semantics.
-bool isStrided(MemRefType t);
-
-/// Return "true" if the last dimension of the given type has a static unit
-/// stride. Also return "true" for types with no strides.
-bool isLastMemrefDimUnitStride(MemRefType type);
-
-/// Return "true" if the last N dimensions of the given type are contiguous.
-///
-/// Examples:
-///   - memref<5x4x3x2xi8, strided<[24, 6, 2, 1]> is contiguous when
-///   considering both _all_ and _only_ the trailing 3 dims,
-///   - memref<5x4x3x2xi8, strided<[48, 6, 2, 1]> is _only_ contiguous when
-///   considering the trailing 3 dims.
-///
-bool trailingNDimsContiguous(MemRefType type, int64_t n);
-
 } // namespace mlir
 
 #endif // MLIR_IR_BUILTINTYPES_H
