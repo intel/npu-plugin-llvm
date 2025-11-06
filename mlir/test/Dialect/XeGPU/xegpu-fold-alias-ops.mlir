@@ -1,4 +1,3 @@
-// REQUIRES: xegpu-dialect-enabled
 // RUN: mlir-opt -xegpu-fold-alias-ops -split-input-file %s | FileCheck %s
 
 func.func @fold_subview_with_xegpu_create_nd_tdesc(%arg0 : memref<256x256xf32>, %arg1 : index, %arg2 : index, %arg3 : index, %arg4 : index) ->(!xegpu.tensor_desc<8x16xf32>) {

@@ -71,9 +71,7 @@
 #include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
 #include "mlir/Conversion/TosaToMLProgram/TosaToMLProgram.h"
 #include "mlir/Conversion/TosaToSCF/TosaToSCF.h"
-#ifdef MLIR_CONVERSION_TOSATOTENSOR_ENABLE
 #include "mlir/Conversion/TosaToTensor/TosaToTensor.h"
-#endif
 #include "mlir/Conversion/UBToLLVM/UBToLLVM.h"
 #include "mlir/Conversion/UBToSPIRV/UBToSPIRV.h"
 #include "mlir/Conversion/VectorToArmSME/VectorToArmSME.h"
@@ -81,9 +79,7 @@
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.h"
 #include "mlir/Conversion/VectorToSCF/VectorToSCF.h"
 #include "mlir/Conversion/VectorToSPIRV/VectorToSPIRVPass.h"
-#ifdef MLIR_DIALECT_XEGPU_ENABLE
 #include "mlir/Conversion/VectorToXeGPU/VectorToXeGPU.h"
-#endif
 
 namespace mlir {
 

@@ -1,4 +1,3 @@
-// REQUIRES: tosa-to-tensor-enabled
 // RUN: mlir-opt --split-input-file --tosa-to-tensor %s -o -| FileCheck %s
 
 // -----

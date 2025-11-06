@@ -7,10 +7,4 @@ add_public_tablegen_target(MLIRConversionPassIncGen)
 
 add_mlir_doc(Passes ConversionPasses ./ -gen-pass-doc)
 
-if(MLIR_CONVERSION_TOSATOTENSOR_ENABLE)
-  add_subdirectory(TosaToTensor)
-endif()
-if(MLIR_DIALECT_XEGPU_ENABLE)
-  add_subdirectory(VectorToXeGPU)
-endif()
 add_subdirectory(ConvertToLLVM)

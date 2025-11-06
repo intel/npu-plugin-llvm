@@ -1,4 +1,3 @@
-// REQUIRES: xegpu-dialect-enabled
 // RUN: mlir-opt %s -convert-vector-to-xegpu -split-input-file | FileCheck %s
 
 func.func @store_1D_vector(%vec: vector<8xf32>,

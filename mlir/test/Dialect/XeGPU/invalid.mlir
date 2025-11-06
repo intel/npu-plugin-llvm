@@ -1,4 +1,3 @@
-// REQUIRES: xegpu-dialect-enabled
 // RUN: mlir-opt %s -split-input-file -verify-diagnostics
 
 // -----
