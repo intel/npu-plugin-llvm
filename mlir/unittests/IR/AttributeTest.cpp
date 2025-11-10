@@ -490,9 +490,11 @@ TEST(CopyCountAttr, CopyCountGet) {
   test::CopyCount::counter = 0;
   test::TestCopyCountAttr::get(&context, std::move(copyCount));
 #ifndef NDEBUG
-  // One verification enabled only in assert-mode requires a copy.
-  EXPECT_EQ(counter1, 1);
-  EXPECT_EQ(test::CopyCount::counter, 1);
+  // One verification enabled only in assert-mode requires two copies: one for
+  // calling 'verifyInvariants' and one for calling 'verify' inside
+  // 'verifyInvariants'.
+  EXPECT_EQ(counter1, 2);
+  EXPECT_EQ(test::CopyCount::counter, 2);
 #else
   EXPECT_EQ(counter1, 0);
   EXPECT_EQ(test::CopyCount::counter, 0);
@@ -511,9 +513,10 @@ TEST(CopyCountAttr, CopyCountGetChecked) {
   int counter1 = test::CopyCount::counter;
   test::CopyCount::counter = 0;
   test::TestCopyCountAttr::getChecked(loc, &context, std::move(copyCount));
-  // One verification requires a copy.
-  EXPECT_EQ(counter1, 1);
-  EXPECT_EQ(test::CopyCount::counter, 1);
+  // The verifiers require two copies: one for calling 'verifyInvariants' and
+  // one for calling 'verify' inside 'verifyInvariants'.
+  EXPECT_EQ(counter1, 2);
+  EXPECT_EQ(test::CopyCount::counter, 2);
 }
 
 // Test stripped printing using test dialect attribute.
