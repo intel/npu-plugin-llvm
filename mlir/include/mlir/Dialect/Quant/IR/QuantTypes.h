@@ -97,6 +97,12 @@ public:
     return -getDefaultMaximumForF8E5M2();
   }
 
+  static constexpr int64_t getDefaultMaximumForF4E2M1FN() { return 6; }
+
+  static constexpr int64_t getDefaultMinimumForF4E2M1FN() {
+    return -getDefaultMaximumForF4E2M1FN();
+  }
+
   /// Gets the original expressed type that this quantized type approximates.
   /// Note that this presumes that the quantized type was always derived from
   /// a floating point type, which in the broadest definition, is not true (i.e.
@@ -267,7 +273,7 @@ public:
 ///   Per-layer, optional parameters omitted:
 ///     !quant<uniform[StorageType]{Scale}>
 ///
-///   StorageType: 'i'|'u' NumBits
+///   StorageType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   Scale: A legal double value
 ///   ZeroPoint: An integer value
@@ -327,7 +333,7 @@ public:
 ///   Per-axis, optional parameters omitted:
 ///     !quant<uniform[StorageType]{Scale}>
 ///
-///   StorageType: 'i'|'u' NumBits
+///   StorageType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   QuantizedDim: An integer value
 ///   QuantParams: (Scale ':' ZeroPoint)+
@@ -414,7 +420,7 @@ public:
 ///   ScaleZeroList  ::= ScaleZero (',' ScaleZero)*
 ///   ScaleZero ::= Scale (':' ZeroPoint)?
 ///
-///   StorageType: 'i'|'u' NumBits
+///   StorageType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   AxisSpec: An integer value
 ///   BlockSizeSpec: An integer value
@@ -533,7 +539,7 @@ public:
 
 /// QuantileQuantizedType derives from UniformQuantizedType and adds to it a
 /// look up table array of quantile values. The type of the data in the look up table is determined by
-/// the quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// the quantileType member: supported quantileType types are integer/unsigned/f4/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-layer, all parameters expressed:
@@ -541,8 +547,8 @@ public:
 ///   Per-layer, optional parameters omitted:
 ///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
 ///
-///   StorageType: 'i'|'u' NumBits
-///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
+///   StorageType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8'
+///   QuantileType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   Quantiles: Quantile+
 ///   Quantile: A legal double value
@@ -600,7 +606,7 @@ public:
 
 /// Represents per-axis QuantileQuantizedType (also known as per-channel
 /// quantization). The type of the data in the look up table is determined by the
-/// quantileType member: supported quantileType types are integer/unsigned/hf8/bf8/f16/bf16/f32/f64.
+/// quantileType member: supported quantileType types are integer/unsigned/f4/hf8/bf8/f16/bf16/f32/f64.
 ///
 /// Syntax synopsis:
 ///   Per-axis, all parameters expressed:
@@ -608,8 +614,8 @@ public:
 ///   Per-axis, optional parameters omitted:
 ///     !quant<quantile[StorageType:QuantileType]{Quantiles}:{Scale}>
 ///
-///   StorageType: 'i'|'u' NumBits
-///   QuantileType: 'i'|'u' NumBits, 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
+///   StorageType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8'
+///   QuantileType: 'i'|'u' NumBits, 'f4', 'hf8', 'bf8', 'f16', 'bf16', 'f32', 'f64'
 ///   ExpressedType: 'f16', 'f32', 'bf16', 'f64'
 ///   QuantizedDim: An integer value
 ///   Quantiles: Quantile+

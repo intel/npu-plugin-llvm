@@ -47,6 +47,15 @@ func.func @parse() -> !qalias {
 }
 
 // -----
+// Default min/max value optimization for f4E2M1FN.
+// CHECK: !quant.uniform<f4E2M1FN:f32, 9.987200e-01:127>
+!qalias = !quant.uniform<f4E2M1FN<-6:6>:f32, 0.99872:127  >
+func.func @parse() -> !qalias {
+  %0 = "foo"() : () -> !qalias
+  return %0 : !qalias
+}
+
+// -----
 // Required per-layer params specified:
 //   [unsigned] storageType, expressedType, scale
 // CHECK: !quant.uniform<u8:f32, 9.987200e-01>
@@ -87,6 +96,15 @@ func.func @parse() -> !qalias {
 // Storage type: f8E4M3FN
 // CHECK: !quant.uniform<f8E4M3FN:f32, 2.000000e+02>
 !qalias = !quant.uniform<f8E4M3FN:f32, 2.0e+2>
+func.func @parse() -> !qalias {
+  %0 = "foo"() : () -> !qalias
+  return %0 : !qalias
+}
+
+// -----
+// Storage type: f4E2M1FN
+// CHECK: !quant.uniform<f4E2M1FN:f32, 2.000000e+02>
+!qalias = !quant.uniform<f4E2M1FN:f32, 2.0e+2>
 func.func @parse() -> !qalias {
   %0 = "foo"() : () -> !qalias
   return %0 : !qalias

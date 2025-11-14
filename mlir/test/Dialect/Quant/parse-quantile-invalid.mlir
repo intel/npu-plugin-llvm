@@ -127,6 +127,16 @@ func.func @parse() -> !qalias {
 !qalias = !quant.quantile<f8E4M3FN<-500:448>:f16:f32, {-1.0,1.0}:0.99872:127>
 
 // -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 10}}
+!qalias = !quant.quantile<f4E2M1FN<-6:10>:f16:f32, {-1.0,1.0}:0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -10}}
+!qalias = !quant.quantile<f4E2M1FN<-10:6>:f16:f32, {-1.0,1.0}:0.99872:127>
+
+// -----
 // Illegal uniform params: invalid scale
 // expected-error@+1 {{expected floating point literal}}
 !qalias = !quant.quantile<i8<-4:3>:f16:f32, {-1.0,1.0}:abc:127>

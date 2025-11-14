@@ -101,6 +101,16 @@
 !qalias = !quant.uniform<f8E4M3FN<-500:448>:f32, 0.99872:127>
 
 // -----
+// Illegal storage min/max: max > defaultMax
+// expected-error@+1 {{illegal storage type maximum: 10}}
+!qalias = !quant.uniform<f4E2M1FN<-6:10>:f32, 0.99872:127>
+
+// -----
+// Illegal storage min/max: min < defaultMin
+// expected-error@+1 {{illegal storage type minimum: -10}}
+!qalias = !quant.uniform<f4E2M1FN<-10:6>:f32, 0.99872:127>
+
+// -----
 // Illegal uniform params: invalid scale
 // expected-error@+1 {{expected floating point literal}}
 !qalias = !quant.uniform<i8<-4:3>:f32, abc:127>
