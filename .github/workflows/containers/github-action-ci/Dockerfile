@@ -1,4 +1,4 @@
-FROM docker.io/library/ubuntu:22.04@sha256:0e5e4a57c2499249aafc3b40fcd541e9a456aab7296681a3994d631587203f97 as base
+FROM docker.io/library/ubuntu:24.04@sha256:6015f66923d7afbc53558d7ccffd325d43b4e249f41a6e93eef074c9505d2233 as base
 ENV LLVM_SYSROOT=/opt/llvm/
 
 FROM base as toolchain
