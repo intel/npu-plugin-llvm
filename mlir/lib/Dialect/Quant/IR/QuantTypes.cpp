@@ -12,6 +12,7 @@
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/QuantizationInterface.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/MathExtras.h"
@@ -32,7 +33,6 @@ LogicalResult
 QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
                       unsigned flags, Type storageType, Type expressedType,
                       int64_t storageTypeMin, int64_t storageTypeMax) {
-
   bool isSigned =
       (flags & QuantizationFlags::Signed) == QuantizationFlags::Signed;
 
@@ -46,16 +46,11 @@ QuantizedType::verify(function_ref<InFlightDiagnostic()> emitError,
   }
 
   int64_t defaultMin, defaultMax;
-  if (storageType.isa<IntegerType>()) {
-    const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
-    defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
-    defaultMax = QuantizedType::getDefaultMaximumForInteger(isSigned, width);
-  } else if (storageType.isa<Float8E5M2Type>()) {
-    defaultMin = QuantizedType::getDefaultMinimumForF8E5M2();
-    defaultMax = QuantizedType::getDefaultMaximumForF8E5M2();
-  } else if (storageType.isa<Float8E4M3FNType>()) {
-    defaultMin = QuantizedType::getDefaultMinimumForF8E4M3FN();
-    defaultMax = QuantizedType::getDefaultMaximumForF8E4M3FN();
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(storageType)) {
+    const auto width = quantizationInterface.getStorageWidth();
+    defaultMin = quantizationInterface.getDefaultMinimum(isSigned, width);
+    defaultMax = quantizationInterface.getDefaultMaximum(isSigned, width);
   } else {
     return emitError() << "illegal storage type, supported types are: integral "
                           "types, Float8E4M3FNType and Float8E5M2Type ";
@@ -75,17 +70,42 @@ Type QuantizedType::getStorageType() const {
 }
 
 int64_t QuantizedType::getStorageTypeMin() const {
+  Type storageType = static_cast<ImplType *>(impl)->storageType;
+
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(storageType)) {
+    unsigned storageWidth = quantizationInterface.getStorageWidth();
+    bool isSigned = quantizationInterface.isStorageSigned();
+    return quantizationInterface.getDefaultMinimum(isSigned, storageWidth);
+  }
+
   return static_cast<ImplType *>(impl)->storageTypeMin;
 }
 
 int64_t QuantizedType::getStorageTypeMax() const {
+  Type storageType = static_cast<ImplType *>(impl)->storageType;
+
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(storageType)) {
+    unsigned storageWidth = quantizationInterface.getStorageWidth();
+    bool isSigned = quantizationInterface.isStorageSigned();
+    return quantizationInterface.getDefaultMaximum(isSigned, storageWidth);
+  }
+
   return static_cast<ImplType *>(impl)->storageTypeMax;
 }
 
 unsigned QuantizedType::getStorageTypeIntegralWidth() const {
   // NOTE: If ever supporting non-integral storage types, some other scheme
   // for determining the width will be needed.
-  return static_cast<ImplType *>(impl)->storageType.getIntOrFloatBitWidth();
+  Type storageType = static_cast<ImplType *>(impl)->storageType;
+
+  if (auto quantizationInterface =
+          llvm::dyn_cast<QuantizationInterface>(storageType)) {
+    return quantizationInterface.getStorageWidth();
+  }
+
+  return storageType.getIntOrFloatBitWidth();
 }
 
 Type QuantizedType::getExpressedType() const {
@@ -282,6 +302,7 @@ LogicalResult UniformQuantizedType::verify(
     function_ref<InFlightDiagnostic()> emitError, unsigned flags,
     Type storageType, Type expressedType, double scale, int64_t zeroPoint,
     int64_t storageTypeMin, int64_t storageTypeMax) {
+
   if (failed(QuantizedType::verify(emitError, flags, storageType, expressedType,
                                    storageTypeMin, storageTypeMax))) {
     return failure();
