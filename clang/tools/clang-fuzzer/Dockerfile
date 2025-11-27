@@ -6,7 +6,7 @@
 #
 #===----------------------------------------------------------------------===//
 # Produces an image that builds clang-proto-fuzzer
-FROM ubuntu:16.04
+FROM ubuntu:24.04
 RUN apt-get update -y
 RUN apt-get install -y autoconf automake libtool curl make g++ unzip wget git \
     binutils liblzma-dev libz-dev python-all cmake ninja-build subversion \
