@@ -46,28 +46,42 @@ QuantizedType::verifyInvariants(function_ref<InFlightDiagnostic()> emitError,
                                 unsigned flags, Type storageType,
                                 Type expressedType, int64_t storageTypeMin,
                                 int64_t storageTypeMax) {
-  // Verify that the storage type is integral.
-  // This restriction may be lifted at some point in favor of using bf16
-  // or f16 as exact representations on hardware where that is advantageous.
-  auto intStorageType = llvm::dyn_cast<IntegerType>(storageType);
-  if (!intStorageType)
-    return emitError() << "storage type must be integral";
-  unsigned integralWidth = intStorageType.getWidth();
 
-  // Verify storage width.
-  if (integralWidth == 0 || integralWidth > MaxStorageBits)
-    return emitError() << "illegal storage type size: " << integralWidth;
-
-  // Verify storageTypeMin and storageTypeMax.
   bool isSigned =
       (flags & QuantizationFlags::Signed) == QuantizationFlags::Signed;
-  int64_t defaultIntegerMin =
-      getDefaultMinimumForInteger(isSigned, integralWidth);
-  int64_t defaultIntegerMax =
-      getDefaultMaximumForInteger(isSigned, integralWidth);
-  if (storageTypeMax - storageTypeMin <= 0 ||
-      storageTypeMin < defaultIntegerMin ||
-      storageTypeMax > defaultIntegerMax) {
+
+  // Integral storage type width checks
+  if (mlir::isa<IntegerType>(storageType)) {
+    unsigned integralWidth =
+        llvm::dyn_cast<IntegerType>(storageType).getWidth();
+
+    if (integralWidth == 0 || integralWidth > MaxStorageBits)
+      return emitError() << "illegal storage type size: " << integralWidth;
+  }
+
+  int64_t defaultMin, defaultMax;
+  if (mlir::isa<IntegerType>(storageType)) {
+    const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+    defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
+    defaultMax = QuantizedType::getDefaultMaximumForInteger(isSigned, width);
+  } else if (mlir::isa<Float8E5M2Type>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E5M2();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E5M2();
+  } else if (mlir::isa<Float8E4M3FNType>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E4M3FN();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E4M3FN();
+  } else if (mlir::isa<Float4E2M1FNType>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF4E2M1FN();
+    defaultMax = QuantizedType::getDefaultMaximumForF4E2M1FN();
+  } else {
+    return emitError()
+           << "illegal storage type, supported types are: integral "
+              "types, Float8E4M3FNType, Float8E5M2Type and Float4E2M1FNType ";
+  }
+
+  // Verify storageTypeMin and storageTypeMax.
+  if (storageTypeMax - storageTypeMin <= 0 || storageTypeMin < defaultMin ||
+      storageTypeMax > defaultMax) {
     return emitError() << "illegal storage min and storage max: ("
                        << storageTypeMin << ":" << storageTypeMax << ")";
   }
@@ -317,13 +331,15 @@ LogicalResult UniformQuantizedType::verifyInvariants(
     return emitError() << "expressed type must be floating point";
 
   // Verify scale.
-  double minScale = getMinScale(expressedType);
-  double maxScale = getMaxScale(expressedType);
-  if (scale < minScale || scale > maxScale)
-    return emitError() << "scale out of expressed type range [" << minScale
-                       << ", " << maxScale << "]";
+  if (std::isinf(scale) || std::isnan(scale))
+    return emitError() << "illegal scale: " << scale;
 
   return success();
+}
+
+bool UniformQuantizedType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedType>() ||
+         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedType>();
 }
 
 double UniformQuantizedType::getScale() const { return getImpl()->scale; }
@@ -380,12 +396,9 @@ LogicalResult UniformQuantizedPerAxisType::verifyInvariants(
                        << scales.size() << ", " << zeroPoints.size();
 
   // Verify scale.
-  double minScale = getMinScale(expressedType);
-  double maxScale = getMaxScale(expressedType);
   for (double scale : scales) {
-    if (scale < minScale || scale > maxScale)
-      return emitError() << "scale out of expressed type range [" << minScale
-                         << ", " << maxScale << "]";
+    if (std::isinf(scale) || std::isnan(scale))
+      return emitError() << "illegal scale: " << scale;
   }
 
   // Verify quantized dimension.
@@ -393,6 +406,11 @@ LogicalResult UniformQuantizedPerAxisType::verifyInvariants(
     return emitError() << "illegal quantized dimension: " << quantizedDimension;
 
   return success();
+}
+
+bool UniformQuantizedPerAxisType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<UniformQuantizedPerAxisType>() ||
+         type.getTypeID() == mlir::TypeID::get<QuantileQuantizedPerAxisType>();
 }
 
 ArrayRef<double> UniformQuantizedPerAxisType::getScales() const {
@@ -522,6 +540,182 @@ UniformQuantizedSubChannelType::getBlockSizeInfo() const {
   }
 
   return result;
+}
+
+QuantileQuantizedType
+QuantileQuantizedType::get(unsigned flags, Type storageType, Type quantileType,
+                           Type expressedType, ArrayRef<double> quantiles,
+                           double scale, int64_t zeroPoint,
+                           int64_t storageTypeMin, int64_t storageTypeMax) {
+  return Base::get(storageType.getContext(), flags, storageType, quantileType,
+                   expressedType, quantiles, scale, zeroPoint, storageTypeMin,
+                   storageTypeMax);
+}
+
+QuantileQuantizedType QuantileQuantizedType::getChecked(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type quantileType, Type expressedType,
+    ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  return Base::getChecked(emitError, storageType.getContext(), flags,
+                          storageType, quantileType, expressedType, quantiles,
+                          scale, zeroPoint, storageTypeMin, storageTypeMax);
+}
+LogicalResult QuantileQuantizedType::verifyInvariants(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type quantileType, Type expressedType,
+    ArrayRef<double> quantiles, double scale, int64_t zeroPoint,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  if (failed(UniformQuantizedType::verifyInvariants(
+          emitError, flags, storageType, expressedType, scale, zeroPoint,
+          storageTypeMin, storageTypeMax))) {
+    return failure();
+  }
+
+  unsigned typeWidth{};
+  if (mlir::isa<IntegerType>(storageType)) {
+    typeWidth = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+  } else if (mlir::isa<Float8E5M2Type, Float8E4M3FNType, Float4E2M1FNType>(
+                 storageType)) {
+    // Float8E5M2Type, Float8E4M3FNType and Float4E2M1FNType derive from
+    // FloatType.
+    typeWidth = llvm::dyn_cast<FloatType>(storageType).getWidth();
+  } else {
+    return emitError()
+           << "illegal storage type, supported types are: integral "
+              "types, Float8E4M3FNType, Float8E5M2Type and Float4E2M1FNType ";
+  }
+
+  const size_t storageTypeRange = storageTypeMax - storageTypeMin + 1;
+  const size_t typeWidthSize = 1 << typeWidth;
+  const size_t expectedSize =
+      (storageTypeRange < typeWidthSize) && !mlir::isa<FloatType>(storageType)
+          ? storageTypeRange
+          : typeWidthSize;
+
+  const auto quantileArraySize = quantiles.size();
+  if (quantileArraySize != expectedSize) {
+    return emitError() << "quantiles array size needs to be equal to "
+                          "2^(bit_size(storageType)), or (storageTypeMax - "
+                          "storageTypeMin + 1) when max and min differ from "
+                          "the type limits; expected: "
+                       << expectedSize << ", found: " << quantileArraySize;
+  }
+
+  // Verify quantiles
+  for (double quantile : quantiles) {
+    if (std::isinf(quantile) || std::isnan(quantile)) {
+      return emitError() << "illegal quantile value: " << quantile;
+    }
+  }
+
+  return success();
+}
+
+bool QuantileQuantizedType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<QuantileQuantizedType>();
+}
+
+Type QuantileQuantizedType::getQuantileType() const {
+  return getImpl()->quantileType;
+}
+
+unsigned QuantileQuantizedType::getQuantileTypeIntegralWidth() const {
+  return getImpl()->getQuantileType().getIntOrFloatBitWidth();
+}
+
+ArrayRef<double> QuantileQuantizedType::getQuantiles() const {
+  return getImpl()->getQuantiles();
+}
+
+QuantileQuantizedPerAxisType QuantileQuantizedPerAxisType::get(
+    unsigned flags, Type storageType, Type quantileType, Type expressedType,
+    ArrayRef<double> quantiles, ArrayRef<double> scales,
+    ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  return Base::get(storageType.getContext(), flags, storageType, quantileType,
+                   expressedType, quantiles, scales, zeroPoints,
+                   quantizedDimension, storageTypeMin, storageTypeMax);
+}
+
+QuantileQuantizedPerAxisType QuantileQuantizedPerAxisType::getChecked(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type quantileType, Type expressedType,
+    ArrayRef<double> quantiles, ArrayRef<double> scales,
+    ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  return Base::getChecked(emitError, storageType.getContext(), flags,
+                          storageType, quantileType, expressedType, quantiles,
+                          scales, zeroPoints, quantizedDimension,
+                          storageTypeMin, storageTypeMax);
+}
+
+LogicalResult QuantileQuantizedPerAxisType::verifyInvariants(
+    function_ref<InFlightDiagnostic()> emitError, unsigned flags,
+    Type storageType, Type quantileType, Type expressedType,
+    ArrayRef<double> quantiles, ArrayRef<double> scales,
+    ArrayRef<int64_t> zeroPoints, int32_t quantizedDimension,
+    int64_t storageTypeMin, int64_t storageTypeMax) {
+  if (failed(UniformQuantizedPerAxisType::verifyInvariants(
+          emitError, flags, storageType, expressedType, scales, zeroPoints,
+          quantizedDimension, storageTypeMin, storageTypeMax))) {
+    return failure();
+  }
+
+  unsigned typeWidth{};
+  if (mlir::isa<IntegerType>(storageType)) {
+    typeWidth = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+  } else if (mlir::isa<Float8E5M2Type, Float8E4M3FNType, Float4E2M1FNType>(
+                 storageType)) {
+    // Float8E5M2Type, Float8E4M3FNType and Float4E2M1FNType derive from
+    // FloatType.
+    typeWidth = llvm::dyn_cast<FloatType>(storageType).getWidth();
+  } else {
+    return emitError()
+           << "illegal storage type, supported types are: integral "
+              "types, Float8E4M3FNType, Float8E5M2Type and Float4E2M1FNType ";
+  }
+
+  const size_t storageTypeRange = storageTypeMax - storageTypeMin + 1;
+  const size_t typeWidthSize = 1 << typeWidth;
+  const size_t expectedSize =
+      (storageTypeRange < typeWidthSize) && !mlir::isa<FloatType>(storageType)
+          ? storageTypeRange
+          : typeWidthSize;
+
+  const auto quantileArraySize = quantiles.size();
+  if (quantileArraySize != expectedSize) {
+    return emitError() << "quantiles array size needs to be equal to "
+                          "2^(bit_size(storageType)), or (storageTypeMax - "
+                          "storageTypeMin + 1) when max and min differ from "
+                          "the type limits; expected: "
+                       << expectedSize << ", found: " << quantileArraySize;
+  }
+
+  // Verify quantiles
+  for (double quantile : quantiles) {
+    if (std::isinf(quantile) || std::isnan(quantile)) {
+      return emitError() << "illegal quantile value: " << quantile;
+    }
+  }
+
+  return success();
+}
+
+bool QuantileQuantizedPerAxisType::classof(mlir::Type type) {
+  return type.getTypeID() == mlir::TypeID::get<QuantileQuantizedPerAxisType>();
+}
+
+Type QuantileQuantizedPerAxisType::getQuantileType() const {
+  return getImpl()->quantileType;
+}
+
+unsigned QuantileQuantizedPerAxisType::getQuantileTypeIntegralWidth() const {
+  return getImpl()->getQuantileType().getIntOrFloatBitWidth();
+}
+
+ArrayRef<double> QuantileQuantizedPerAxisType::getQuantiles() const {
+  return getImpl()->getQuantiles();
 }
 
 CalibratedQuantizedType CalibratedQuantizedType::get(Type expressedType,

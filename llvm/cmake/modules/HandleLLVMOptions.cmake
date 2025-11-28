@@ -797,6 +797,16 @@ if (MSVC)
 
   # Enable warnings
   if (LLVM_ENABLE_WARNINGS)
+    # Remove all -wd flag to enable warnings
+    if (NOT CLANG_CL)
+      set(msvc_warning_flags
+        # Promoted warnings.
+        -w14062 # Promote 'enumerator in switch of enum is not handled' to level 1 warning.
+
+        # Promoted warnings to errors.
+        -we4238 # Promote 'nonstandard extension used : class rvalue used as lvalue' to error.
+      )
+    endif(NOT CLANG_CL)
     # Put /W4 in front of all the -we flags. cl.exe doesn't care, but for
     # clang-cl having /W4 after the -we flags will re-enable the warnings
     # disabled by -we.

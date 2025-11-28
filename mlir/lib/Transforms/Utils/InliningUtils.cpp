@@ -92,6 +92,19 @@ static void remapInlinedOperands(iterator_range<Region::iterator> inlinedBlocks,
 }
 
 //===----------------------------------------------------------------------===//
+// DialectInlinerInterface
+//===----------------------------------------------------------------------===//
+
+void DialectInlinerInterface::eraseCall(Operation *call) const {
+  call->erase();
+}
+
+std::tuple<Block *, Block::iterator>
+DialectInlinerInterface::getInlineBlockAndPoint(Operation *call) const {
+  return std::make_tuple(call->getBlock(), std::next(call->getIterator()));
+}
+
+//===----------------------------------------------------------------------===//
 // InlinerInterface
 //===----------------------------------------------------------------------===//
 
@@ -548,9 +561,11 @@ LogicalResult mlir::inlineCall(
   if (!interface.isLegalToInline(call, callable, shouldCloneInlinedRegion))
     return cleanupState();
 
+  auto [inlineBlock, inlinePoint] = callInterface->getInlineBlockAndPoint(call);
+
   // Attempt to inline the call.
-  if (failed(inlineRegionImpl(interface, cloneCallback, src, call->getBlock(),
-                              ++call->getIterator(), mapper, callResults,
+  if (failed(inlineRegionImpl(interface, cloneCallback, src, inlineBlock,
+                              inlinePoint, mapper, callResults,
                               callableResultTypes, call.getLoc(),
                               shouldCloneInlinedRegion, call)))
     return cleanupState();

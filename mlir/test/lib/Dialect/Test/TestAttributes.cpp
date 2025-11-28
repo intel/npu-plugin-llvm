@@ -214,6 +214,16 @@ static void printTrueFalse(AsmPrinter &p, std::optional<int> result) {
 }
 
 //===----------------------------------------------------------------------===//
+// TestCopyCountAttr Implementation
+//===----------------------------------------------------------------------===//
+
+LogicalResult TestCopyCountAttr::verify(
+    llvm::function_ref<::mlir::InFlightDiagnostic()> /*emitError*/,
+    CopyCount /*copy_count*/) {
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // CopyCountAttr Implementation
 //===----------------------------------------------------------------------===//
 
@@ -314,6 +324,34 @@ static ParseResult parseCustomFloatAttr(AsmParser &p, StringAttr &typeStrAttr,
 
   value.emplace(parsedValue);
   return success();
+}
+
+// TestAttrNewlineAndIndent
+//===----------------------------------------------------------------------===//
+
+Attribute TestAttrNewlineAndIndentAttr::parse(::mlir::AsmParser &parser,
+                                              ::mlir::Type type) {
+  Type indentType;
+  if (parser.parseLess()) {
+    return {};
+  }
+  if (parser.parseType(indentType)) {
+    return {};
+  }
+  if (parser.parseGreater()) {
+    return {};
+  }
+  return get(parser.getContext(), indentType);
+}
+
+void TestAttrNewlineAndIndentAttr::print(::mlir::AsmPrinter &printer) const {
+  printer << "<";
+  printer.increaseIndent();
+  printer.printNewline();
+  printer << getIndentType();
+  printer.decreaseIndent();
+  printer.printNewline();
+  printer << ">";
 }
 
 //===----------------------------------------------------------------------===//
@@ -495,24 +533,6 @@ getDynamicCustomAssemblyFormatAttr(TestDialect *testDialect) {
   return DynamicAttrDefinition::get("dynamic_custom_assembly_format",
                                     testDialect, std::move(verifier),
                                     std::move(parser), std::move(printer));
-}
-
-//===----------------------------------------------------------------------===//
-// SlashAttr
-//===----------------------------------------------------------------------===//
-
-Attribute SlashAttr::parse(AsmParser &parser, Type type) {
-  int lhs, rhs;
-
-  if (parser.parseLess() || parser.parseInteger(lhs) || parser.parseSlash() ||
-      parser.parseInteger(rhs) || parser.parseGreater())
-    return Attribute();
-
-  return SlashAttr::get(parser.getContext(), lhs, rhs);
-}
-
-void SlashAttr::print(AsmPrinter &printer) const {
-  printer << "<" << getLhs() << " / " << getRhs() << ">";
 }
 
 //===----------------------------------------------------------------------===//

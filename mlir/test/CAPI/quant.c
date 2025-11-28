@@ -268,7 +268,7 @@ void testUniformSubChannelType(MlirContext ctx) {
           mlirTypeIsNull(illegalSubChannel));
 
   // CHECK: num dims: 2
-  fprintf(stderr, "num dims: %" PRIdPTR "\n",
+  fprintf(stderr, "num dims: %" PRId64 "\n",
           mlirUniformQuantizedSubChannelTypeGetNumBlockSizes(subChannel));
 
   // CHECK: axis-block-size-pair[0]: 0:1

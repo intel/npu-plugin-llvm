@@ -122,7 +122,7 @@ LogicalResult verifySubChannelQuantization(
   //
   // Therefore, we explicitly disallow the case where d = 0 to maintain
   // consistency and avoid these issues.
-  if (llvm::is_contained(tensorType.getShape(), 0)) {
+  if (llvm::find(tensorType.getShape(), 0) != tensorType.getShape().end()) {
     return op->emitError() << "tensor dimension size of zero is not allowed "
                               "with sub-channel quantization";
   }
@@ -191,7 +191,8 @@ LogicalResult verifyQuantizationOp(Operation *op, QuantizedType quantizedType,
 
 void QuantDialect::initialize() {
   addTypes<AnyQuantizedType, CalibratedQuantizedType, UniformQuantizedType,
-           UniformQuantizedPerAxisType, UniformQuantizedSubChannelType>();
+           UniformQuantizedPerAxisType, QuantileQuantizedType,
+           QuantileQuantizedPerAxisType, UniformQuantizedSubChannelType>();
   addOperations<
 #define GET_OP_LIST
 #include "mlir/Dialect/Quant/IR/QuantOps.cpp.inc"

@@ -130,6 +130,16 @@ public:
   /// Return the raw output stream used by this printer.
   virtual raw_ostream &getStream() const;
 
+  /// Print a newline and indent the printer to the start of the current
+  /// operation.
+  virtual void printNewline();
+  
+  /// Increase indentation.
+  virtual void increaseIndent();
+  
+  /// Decrease indentation.
+  virtual void decreaseIndent();
+
   /// Print the given floating point value in a stabilized form that can be
   /// roundtripped through the IR. This is the companion to the 'parseFloat'
   /// hook on the AsmParser.
@@ -447,16 +457,6 @@ public:
 
   /// Print a loc(...) specifier if printing debug info is enabled.
   virtual void printOptionalLocationSpecifier(Location loc) = 0;
-
-  /// Print a newline and indent the printer to the start of the current
-  /// operation.
-  virtual void printNewline() = 0;
-
-  /// Increase indentation.
-  virtual void increaseIndent() = 0;
-
-  /// Decrease indentation.
-  virtual void decreaseIndent() = 0;
 
   /// Print a block argument in the usual format of:
   ///   %ssaName : type {attr1=42} loc("here")
@@ -1654,16 +1654,21 @@ public:
                   SmallVectorImpl<Value> &result) {
     size_t operandSize = llvm::range_size(operands);
     size_t typeSize = llvm::range_size(types);
-    if (operandSize != typeSize) {
-      // If no location was provided, report errors at the beginning of the op.
-      return emitError(loc.isValid() ? loc : getNameLoc())
+    if (typeSize != 0 && operandSize != typeSize) {
+      return emitError(loc)
              << "number of operands and types do not match: got " << operandSize
              << " operands and " << typeSize << " types";
     }
 
-    for (auto [operand, type] : llvm::zip_equal(operands, types))
-      if (resolveOperand(operand, type, result))
-        return failure();
+    if (typeSize == 0) {
+      for (auto it : operands)
+        if (resolveOperand(it, Type(), result))
+          return failure();
+    } else {
+      for (auto [operand, type] : llvm::zip_equal(operands, types))
+        if (resolveOperand(operand, type, result))
+          return failure();
+    }
     return success();
   }
 

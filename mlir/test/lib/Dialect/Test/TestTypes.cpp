@@ -548,28 +548,29 @@ void TestTypeOpAsmTypeInterfaceType::getAsmName(
   setNameFn("op_asm_type_interface");
 }
 
-::mlir::OpAsmDialectInterface::AliasResult
-TestTypeOpAsmTypeInterfaceType::getAlias(::llvm::raw_ostream &os) const {
-  os << "op_asm_type_interface_type";
-  return ::mlir::OpAsmDialectInterface::AliasResult::FinalAlias;
+//===----------------------------------------------------------------------===//
+// TestTypeNewlineAndIndent
+//===----------------------------------------------------------------------===//
+
+Type TestTypeNewlineAndIndentType::parse(::mlir::AsmParser &parser) {
+  if (parser.parseLess()) {
+    return {};
+  }
+  if (parser.parseKeyword("indented_content")) {
+    return {};
+  }
+  if (parser.parseGreater()) {
+    return {};
+  }
+  return get(parser.getContext());
 }
 
-::mlir::FailureOr<::mlir::bufferization::BufferLikeType>
-TestTensorType::getBufferType(
-    const ::mlir::bufferization::BufferizationOptions &,
-    ::llvm::function_ref<::mlir::InFlightDiagnostic()>) {
-  return cast<bufferization::BufferLikeType>(
-      TestMemrefType::get(getContext(), getShape(), getElementType(), nullptr));
-}
-
-::mlir::LogicalResult TestTensorType::verifyCompatibleBufferType(
-    ::mlir::bufferization::BufferLikeType bufferType,
-    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
-  auto testMemref = dyn_cast<TestMemrefType>(bufferType);
-  if (!testMemref)
-    return emitError() << "expected TestMemrefType";
-
-  const bool valid = getShape() == testMemref.getShape() &&
-                     getElementType() == testMemref.getElementType();
-  return mlir::success(valid);
+void TestTypeNewlineAndIndentType::print(::mlir::AsmPrinter &printer) const {
+  printer << "<";
+  printer.increaseIndent();
+  printer.printNewline();
+  printer << "indented_content";
+  printer.decreaseIndent();
+  printer.printNewline();
+  printer << ">";
 }

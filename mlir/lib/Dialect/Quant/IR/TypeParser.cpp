@@ -21,9 +21,9 @@
 using namespace mlir;
 using namespace quant;
 
-static IntegerType parseStorageType(DialectAsmParser &parser, bool &isSigned) {
+static Type parseStorageType(DialectAsmParser &parser, bool &isSigned) {
   auto typeLoc = parser.getCurrentLocation();
-  IntegerType type;
+  Type type;
 
   // Parse storage type (alpha_ident, integer_literal).
   StringRef identifier;
@@ -32,20 +32,32 @@ static IntegerType parseStorageType(DialectAsmParser &parser, bool &isSigned) {
   if (result.has_value()) {
     if (!succeeded(*result))
       return nullptr;
-    isSigned = !type.isUnsigned();
-    storageTypeWidth = type.getWidth();
+    if (auto intType = llvm::dyn_cast<IntegerType>(type)) {
+      isSigned = !intType.isUnsigned();
+      storageTypeWidth = intType.getWidth();
+    } else if (mlir::isa<Float8E5M2Type, Float8E4M3FNType, Float4E2M1FNType>(
+                   type)) {
+      storageTypeWidth = llvm::dyn_cast<FloatType>(type).getWidth();
+      isSigned = true;
+    } else {
+      parser.emitError(typeLoc, "illegal quantized storage type alias");
+      return nullptr;
+    }
   } else if (succeeded(parser.parseKeyword(&identifier))) {
-    // Otherwise, this must be an unsigned integer (`u` integer-literal).
-    if (!identifier.consume_front("u")) {
-      parser.emitError(typeLoc, "illegal storage type prefix");
+    // Otherwise, this must be an unsigned integer (`u` integer-literal)
+    if (identifier.consume_front("u")) {
+      if (identifier.getAsInteger(10, storageTypeWidth)) {
+        parser.emitError(typeLoc, "expected storage type width");
+        return nullptr;
+      }
+      isSigned = false;
+      type = parser.getBuilder().getIntegerType(storageTypeWidth);
+
+    } else {
+      parser.emitError(typeLoc, "illegal quantized storage type alias");
       return nullptr;
     }
-    if (identifier.getAsInteger(10, storageTypeWidth)) {
-      parser.emitError(typeLoc, "expected storage type width");
-      return nullptr;
-    }
-    isSigned = false;
-    type = parser.getBuilder().getIntegerType(storageTypeWidth);
+
   } else {
     return nullptr;
   }
@@ -60,35 +72,96 @@ static IntegerType parseStorageType(DialectAsmParser &parser, bool &isSigned) {
   return type;
 }
 
-static ParseResult parseStorageRange(DialectAsmParser &parser,
-                                     IntegerType storageType, bool isSigned,
-                                     int64_t &storageTypeMin,
+static Type parseQuantileType(DialectAsmParser &parser) {
+  auto typeLoc = parser.getCurrentLocation();
+  Type type;
+
+  // Parse storage type (alpha_ident, integer_literal).
+  StringRef identifier;
+  unsigned storageTypeWidth = 0;
+  OptionalParseResult result = parser.parseOptionalType(type);
+  if (result.has_value()) {
+    if (!succeeded(*result))
+      return nullptr;
+
+    if (!mlir::isa<IntegerType>(type) && !mlir::isa<FloatType>(type)) {
+      parser.emitError(typeLoc, "illegal quantile type alias");
+      return nullptr;
+    }
+  } else if (succeeded(parser.parseKeyword(&identifier))) {
+    // Otherwise, this must be an unsigned integer (`u` integer-literal)
+    if (identifier.consume_front("u")) {
+      if (identifier.getAsInteger(10, storageTypeWidth)) {
+        parser.emitError(typeLoc, "expected quantile type width");
+        return nullptr;
+      }
+      constexpr bool isSigned = false;
+      type = parser.getBuilder().getIntegerType(storageTypeWidth, isSigned);
+
+    } else {
+      parser.emitError(typeLoc, "illegal quantile type alias");
+      return nullptr;
+    }
+  } else {
+    return nullptr;
+  }
+
+  return type;
+}
+
+static ParseResult
+checkStorageRange(DialectAsmParser &parser, int64_t storageTypeMin,
+                  int64_t storageTypeMax, int64_t defaultStorageTypeMin,
+                  int64_t defaultStorageTypeMax, SMLoc minLoc, SMLoc maxLoc) {
+  if (storageTypeMin < defaultStorageTypeMin) {
+    return parser.emitError(minLoc, "illegal storage type minimum: ")
+           << storageTypeMin;
+  }
+  if (storageTypeMax > defaultStorageTypeMax) {
+    return parser.emitError(maxLoc, "illegal storage type maximum: ")
+           << storageTypeMax;
+  }
+  return success();
+}
+
+static ParseResult parseStorageRange(DialectAsmParser &parser, Type storageType,
+                                     bool isSigned, int64_t &storageTypeMin,
                                      int64_t &storageTypeMax) {
-  int64_t defaultIntegerMin = QuantizedType::getDefaultMinimumForInteger(
-      isSigned, storageType.getWidth());
-  int64_t defaultIntegerMax = QuantizedType::getDefaultMaximumForInteger(
-      isSigned, storageType.getWidth());
+  int64_t defaultMin, defaultMax;
+  if (mlir::isa<IntegerType>(storageType)) {
+    const auto width = llvm::dyn_cast<IntegerType>(storageType).getWidth();
+    defaultMin = QuantizedType::getDefaultMinimumForInteger(isSigned, width);
+    defaultMax = QuantizedType::getDefaultMaximumForInteger(isSigned, width);
+  } else if (mlir::isa<Float8E5M2Type>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E5M2();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E5M2();
+  } else if (mlir::isa<Float8E4M3FNType>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF8E4M3FN();
+    defaultMax = QuantizedType::getDefaultMaximumForF8E4M3FN();
+  } else if (mlir::isa<Float4E2M1FNType>(storageType)) {
+    defaultMin = QuantizedType::getDefaultMinimumForF4E2M1FN();
+    defaultMax = QuantizedType::getDefaultMaximumForF4E2M1FN();
+  } else {
+    defaultMin = std::numeric_limits<int64_t>::max();
+    defaultMax = std::numeric_limits<int64_t>::min();
+  }
+
   if (failed(parser.parseOptionalLess())) {
-    storageTypeMin = defaultIntegerMin;
-    storageTypeMax = defaultIntegerMax;
+    storageTypeMin = defaultMin;
+    storageTypeMax = defaultMax;
     return success();
   }
 
   // Explicit storage min and storage max.
+  // F8 and F4 min and max values are integers, so parseInteger() is used.
   SMLoc minLoc = parser.getCurrentLocation(), maxLoc;
   if (parser.parseInteger(storageTypeMin) || parser.parseColon() ||
       parser.getCurrentLocation(&maxLoc) ||
       parser.parseInteger(storageTypeMax) || parser.parseGreater())
     return failure();
-  if (storageTypeMin < defaultIntegerMin) {
-    return parser.emitError(minLoc, "illegal storage type minimum: ")
-           << storageTypeMin;
-  }
-  if (storageTypeMax > defaultIntegerMax) {
-    return parser.emitError(maxLoc, "illegal storage type maximum: ")
-           << storageTypeMax;
-  }
-  return success();
+
+  return checkStorageRange(parser, storageTypeMin, storageTypeMax, defaultMin,
+                           defaultMax, minLoc, maxLoc);
 }
 
 static FloatType parseExpressedTypeAndRange(DialectAsmParser &parser,
@@ -118,7 +191,7 @@ static FloatType parseExpressedTypeAndRange(DialectAsmParser &parser,
 ///   storage-type ::= (`i` | `u`) integer-literal
 ///   expressed-type-spec ::= `:` `f` integer-literal
 static Type parseAnyType(DialectAsmParser &parser) {
-  IntegerType storageType;
+  Type storageType;
   FloatType expressedType;
   unsigned typeFlags = 0;
   int64_t storageTypeMin;
@@ -166,8 +239,8 @@ LogicalResult
 isScaleInExpressedTypeRange(function_ref<InFlightDiagnostic()> emitError,
                             Type expressedType, double scale) {
   auto floatType = cast<FloatType>(expressedType);
-  double minScale =
-      APFloat::getSmallest(floatType.getFloatSemantics()).convertToDouble();
+  double minScale = APFloat::getLargest(floatType.getFloatSemantics(), true)
+                        .convertToDouble();
   double maxScale =
       APFloat::getLargest(floatType.getFloatSemantics()).convertToDouble();
   if (scale < minScale || scale > maxScale)
@@ -299,7 +372,7 @@ parseQuantParamListUntilRBrace(DialectAsmParser &parser, Type expressedType,
   return success();
 }
 
-/// Parses a UniformQuantizedType.
+/// Parses a UniformQuantizedType or a QuantileQuantizedType.
 ///
 ///   uniform_type ::= uniform_per_layer
 ///                  | uniform_per_axis
@@ -312,22 +385,39 @@ parseQuantParamListUntilRBrace(DialectAsmParser &parser, Type expressedType,
 ///                        block-size-info `,` scale-zero-tensor `>`
 ///   storage-spec ::= storage-type (`<` storage-range `>`)?
 ///   storage-range ::= integer-literal `:` integer-literal
-///   storage-type ::= (`i` | `u`) integer-literal
-///   expressed-type-spec ::= `:` `f` integer-literal
-///   axis-spec ::= `:` integer-literal
-///   scale-zero ::= scale (`:` zero-point)?
-///   scale ::= float-literal
-///   zero-point ::= integer-literal
-///   scale-zero-list ::= scale-zero (`,` scale-zero)*
-///   block-size-info ::= `{` `}` | `{` axis-block `:` (`,` axis-block)* `}`
-///   axis-block ::= axis-spec `:` block-size-spec
+///   storage-type ::= (`i` | `u`) integer-literal | `f8E5M2` | `f8E4M3FN` |
+///   `f4E2M1FN` expressed-type-spec ::= `:` `f` integer-literal axis-spec ::=
+///   `:` integer-literal scale-zero ::= scale (`:` zero-point)? scale ::=
+///   float-literal zero-point ::= integer-literal scale-zero-list ::=
+///   scale-zero (`,` scale-zero)* block-size-info ::= `{` `}` | `{` axis-block
+///   `:` (`,` axis-block)* `}` axis-block ::= axis-spec `:` block-size-spec
 ///   block-size-spec ::= integer-literal
 ///   scale-zero-tensor ::= scale-zero-dense-exp | scale-zero-list
 ///   scale-zero-dense-exp ::= `{`
 ///     scale-zero-tensor (`,` scale-zero-tensor)*
 ///   `}`
-static Type parseUniformType(DialectAsmParser &parser) {
-  IntegerType storageType;
+///
+///   quantile_type ::= quantile_per_layer
+///                   | quantile_per_axis
+///   quantile_per_layer ::= `quantile<` storage-spec quantile-type-spec
+///                           expressed-type-spec `,` quantiles-list `,`
+///                           scale-zero `>`
+///   quantile_per_axis ::= `quantile<` storage-spec quantile-type-spec
+///                          expressed-type-spec axis-spec `,` quantiles-list
+///                          scale-zero-list `>`
+///   storage-spec ::= storage-type (`<` storage-range `>`)?
+///   storage-range ::= integer-literal `:` integer-literal
+///   storage-type ::= (`i` | `u`) integer-literal | `f8E5M2` | `f8E4M3FN` |
+///   `f4E2M1FN` quantile-type-spec ::= `:` ((`i` | `u` | `f`) integer-literal |
+///   `f8E5M2` |
+///                          `f8E4M3FN` | `f4E2M1FN`)
+///   expressed-type-spec ::= `:` `f` integer-literal axis-spec ::=
+///   `:` integer-literal quantiles-list ::= `{` quantile (`,` quantile)* `}`
+///   scale-zero ::= `:` float-literal `:` integer-literal
+///   scale-zero-list ::= `:` `{` scale-zero (`,` scale-zero)* `}`
+static Type parseUniformType(DialectAsmParser &parser, bool isQuantile) {
+  Type storageType;
+  Type quantileType;
   FloatType expressedType;
   unsigned typeFlags = 0;
   int64_t storageTypeMin;
@@ -336,6 +426,7 @@ static Type parseUniformType(DialectAsmParser &parser) {
   bool isSubChannel = false;
   SmallVector<int32_t, 1> quantizedDimensions;
   SmallVector<int64_t, 1> blockSizes;
+  SmallVector<double, 1> quantiles;
   SmallVector<double, 1> scales;
   SmallVector<int64_t, 1> zeroPoints;
 
@@ -358,6 +449,17 @@ static Type parseUniformType(DialectAsmParser &parser) {
   if (parseStorageRange(parser, storageType, isSigned, storageTypeMin,
                         storageTypeMax)) {
     return nullptr;
+  }
+
+  // quantile type.
+  if (isQuantile) {
+    if (parser.parseColon()) {
+      return nullptr;
+    }
+    quantileType = parseQuantileType(parser);
+    if (!quantileType) {
+      return nullptr;
+    }
   }
 
   // Expressed type.
@@ -388,6 +490,28 @@ static Type parseUniformType(DialectAsmParser &parser) {
     return nullptr;
   }
 
+  // Quantile list
+  if (isQuantile) {
+    if (parser.parseLBrace()) {
+      return nullptr;
+    }
+
+    do {
+      quantiles.emplace_back();
+      if (parser.parseFloat(quantiles.back())) {
+        return nullptr;
+      }
+    } while (succeeded(parser.parseOptionalComma()));
+
+    if (parser.parseRBrace()) {
+      return nullptr;
+    }
+
+    if (parser.parseColon()) {
+      return nullptr;
+    }
+  }
+
   // Quantization parameter (scales/zeroPoints) specification.
   bool isPerTensor = !isPerAxis && !isSubChannel;
   SmallVector<int64_t> dims;
@@ -409,6 +533,24 @@ static Type parseUniformType(DialectAsmParser &parser) {
 
   if (parser.parseGreater()) {
     return nullptr;
+  }
+
+  if (isQuantile) {
+    ArrayRef<double> quantilesRef(quantiles.begin(), quantiles.end());
+
+    if (isPerAxis) {
+      ArrayRef<double> scalesRef(scales.begin(), scales.end());
+      ArrayRef<int64_t> zeroPointsRef(zeroPoints.begin(), zeroPoints.end());
+
+      return parser.getChecked<QuantileQuantizedPerAxisType>(
+          typeFlags, storageType, quantileType, expressedType, quantilesRef,
+          scalesRef, zeroPointsRef, quantizedDimensions[0], storageTypeMin,
+          storageTypeMax);
+    }
+
+    return parser.getChecked<QuantileQuantizedType>(
+        typeFlags, storageType, quantileType, expressedType, quantilesRef,
+        scales.front(), zeroPoints.front(), storageTypeMin, storageTypeMax);
   }
 
   if (isPerAxis) {
@@ -472,13 +614,16 @@ static Type parseCalibratedType(DialectAsmParser &parser) {
 
 /// Parse a type registered to this dialect.
 Type QuantDialect::parseType(DialectAsmParser &parser) const {
+
   // All types start with an identifier that we switch on.
   StringRef typeNameSpelling;
   if (failed(parser.parseKeyword(&typeNameSpelling)))
     return nullptr;
 
   if (typeNameSpelling == "uniform")
-    return parseUniformType(parser);
+    return parseUniformType(parser, false);
+  if (typeNameSpelling == "quantile")
+    return parseUniformType(parser, true);
   if (typeNameSpelling == "any")
     return parseAnyType(parser);
   if (typeNameSpelling == "calibrated")
@@ -493,16 +638,65 @@ static void printStorageType(QuantizedType type, DialectAsmPrinter &out) {
   // storage type
   unsigned storageWidth = type.getStorageTypeIntegralWidth();
   bool isSigned = type.isSigned();
-  if (isSigned) {
+  if (mlir::isa<Float8E5M2Type>(type.getStorageType())) {
+    out << "f8E5M2";
+  } else if (mlir::isa<Float8E4M3FNType>(type.getStorageType())) {
+    out << "f8E4M3FN";
+  } else if (mlir::isa<Float4E2M1FNType>(type.getStorageType())) {
+    out << "f4E2M1FN";
+  } else if (isSigned) {
     out << "i" << storageWidth;
   } else {
     out << "u" << storageWidth;
   }
 
   // storageTypeMin and storageTypeMax if not default.
-  if (type.hasStorageTypeBounds()) {
+  int64_t defaultMin =
+      mlir::isa<IntegerType>(type.getStorageType())
+          ? QuantizedType::getDefaultMinimumForInteger(isSigned, storageWidth)
+      : mlir::isa<Float8E5M2Type>(type.getStorageType())
+          ? QuantizedType::getDefaultMinimumForF8E5M2()
+      : mlir::isa<Float8E4M3FNType>(type.getStorageType())
+          ? QuantizedType::getDefaultMinimumForF8E4M3FN()
+      : mlir::isa<Float4E2M1FNType>(type.getStorageType())
+          ? QuantizedType::getDefaultMinimumForF4E2M1FN()
+          : std::numeric_limits<int64_t>::max();
+
+  int64_t defaultMax =
+      mlir::isa<IntegerType>(type.getStorageType())
+          ? QuantizedType::getDefaultMaximumForInteger(isSigned, storageWidth)
+      : mlir::isa<Float8E5M2Type>(type.getStorageType())
+          ? QuantizedType::getDefaultMaximumForF8E5M2()
+      : mlir::isa<Float8E4M3FNType>(type.getStorageType())
+          ? QuantizedType::getDefaultMaximumForF8E4M3FN()
+      : mlir::isa<Float4E2M1FNType>(type.getStorageType())
+          ? QuantizedType::getDefaultMaximumForF4E2M1FN()
+          : std::numeric_limits<int64_t>::min();
+
+  if (defaultMin != type.getStorageTypeMin() ||
+      defaultMax != type.getStorageTypeMax()) {
     out << "<" << type.getStorageTypeMin() << ":" << type.getStorageTypeMax()
         << ">";
+  }
+}
+
+static void printQuantileType(Type quantileType, DialectAsmPrinter &out) {
+  if (auto intType = llvm::dyn_cast<IntegerType>(quantileType)) {
+    const unsigned storageTypeWidth = intType.getWidth();
+    if (intType.isUnsigned()) {
+      out << ":u" << storageTypeWidth;
+    } else {
+      out << ":i" << storageTypeWidth;
+    }
+  } else if (mlir::isa<Float8E5M2Type>(quantileType)) {
+    out << ":f8E5M2";
+  } else if (mlir::isa<Float8E4M3FNType>(quantileType)) {
+    out << ":f8E4M3FN";
+  } else if (mlir::isa<Float4E2M1FNType>(quantileType)) {
+    out << ":f4E2M1FN";
+  } else {
+    // Float types
+    out << ":" << quantileType;
   }
 }
 
@@ -638,6 +832,56 @@ printUniformQuantizedSubChannelType(UniformQuantizedSubChannelType type,
   out << ">";
 }
 
+/// Helper that prints a QuantileQuantizedType.
+static void printQuantileQuantizedType(QuantileQuantizedType type,
+                                       DialectAsmPrinter &out) {
+  out << "quantile<";
+  printStorageType(type, out);
+  printQuantileType(type.getQuantileType(), out);
+  out << ":" << type.getExpressedType() << ", ";
+
+  // scheme specific parameters
+  ArrayRef<double> quantiles = type.getQuantiles();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, quantiles.size()), out,
+      [&](size_t index) { out << quantiles[index]; }, ",");
+  out << "}:";
+
+  printQuantParams(type.getScale(), type.getZeroPoint(), out);
+  out << ">";
+}
+
+/// Helper that prints a QuantileQuantizedPerAxisType.
+static void printQuantileQuantizedPerAxisType(QuantileQuantizedPerAxisType type,
+                                              DialectAsmPrinter &out) {
+  out << "quantile<";
+  printStorageType(type, out);
+  printQuantileType(type.getQuantileType(), out);
+  out << ":" << type.getExpressedType() << ":";
+  out << type.getQuantizedDimension();
+  out << ", ";
+
+  // scheme specific parameters
+  ArrayRef<double> quantiles = type.getQuantiles();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, quantiles.size()), out,
+      [&](size_t index) { out << quantiles[index]; }, ",");
+  out << "}:";
+
+  ArrayRef<double> scales = type.getScales();
+  ArrayRef<int64_t> zeroPoints = type.getZeroPoints();
+  out << "{";
+  llvm::interleave(
+      llvm::seq<size_t>(0, scales.size()), out,
+      [&](size_t index) {
+        printQuantParams(scales[index], zeroPoints[index], out);
+      },
+      ",");
+  out << "}>";
+}
+
 /// Helper that prints a CalibratedQuantizedType.
 static void printCalibratedQuantizedType(CalibratedQuantizedType type,
                                          DialectAsmPrinter &out) {
@@ -650,6 +894,11 @@ static void printCalibratedQuantizedType(CalibratedQuantizedType type,
 void QuantDialect::printType(Type type, DialectAsmPrinter &os) const {
   if (auto anyType = llvm::dyn_cast<AnyQuantizedType>(type))
     printAnyQuantizedType(anyType, os);
+  else if (auto uniformType = llvm::dyn_cast<QuantileQuantizedType>(type))
+    printQuantileQuantizedType(uniformType, os);
+  else if (auto perAxisType =
+               llvm::dyn_cast<QuantileQuantizedPerAxisType>(type))
+    printQuantileQuantizedPerAxisType(perAxisType, os);
   else if (auto uniformType = llvm::dyn_cast<UniformQuantizedType>(type))
     printUniformQuantizedType(uniformType, os);
   else if (auto perAxisType = llvm::dyn_cast<UniformQuantizedPerAxisType>(type))

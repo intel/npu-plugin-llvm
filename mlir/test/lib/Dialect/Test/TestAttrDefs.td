@@ -347,6 +347,7 @@ def TestCopyCount : Test_Attr<"TestCopyCount"> {
   let mnemonic = "copy_count";
   let parameters = (ins TestParamCopyCount:$copy_count);
   let assemblyFormat = "`<` $copy_count `>`";
+  let genVerifyDecl = 1;
 }
 
 def TestConditionalAliasAttr : Test_Attr<"TestConditionalAlias"> {
@@ -387,6 +388,13 @@ def TestConstMemorySpaceAttr : Test_Attr<"TestConstMemorySpace", [
   let assemblyFormat = "(`<` $addressSpace^ `>`)?";
 }
 
+def TestAttrNewlineAndIndent : Test_Attr<"TestAttrNewlineAndIndent"> {
+  let mnemonic = "newline_and_indent";
+  let parameters = (ins "::mlir::Type":$indentType);
+  let hasCustomAssemblyFormat = 1;
+}
+
+
 // Test custom location handling.
 def TestCustomLocationAttr : Test_LocAttr<"TestCustomLocation"> {
   let mnemonic = "custom_location";
@@ -395,40 +403,6 @@ def TestCustomLocationAttr : Test_LocAttr<"TestCustomLocation"> {
   // Choose a silly separator token so we know it's hitting this code path
   // and not another.
   let assemblyFormat = "`<` $file `*` $line `>`";
-}
-
-// Test OpAsmAttrInterface.
-def TestOpAsmAttrInterfaceAttr : Test_Attr<"TestOpAsmAttrInterface",
-    [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
-  let mnemonic = "op_asm_attr_interface";
-  let parameters = (ins "mlir::StringAttr":$value);
-  let assemblyFormat = [{
-    `<` struct(params) `>`
-  }];
-}
-
-// Test OpAsmAttrInterface from tablegen genMnemonicAlias option.
-def TestOpAsmAttrInterfaceTablegenDefaultAttr : Test_Attr<"TestOpAsmAttrInterfaceTablegenDefault"> {
-  let mnemonic = "op_asm_attr_interface_tablegen_default";
-  let parameters = (ins "mlir::StringAttr":$value);
-  let assemblyFormat = [{
-    `<` struct(params) `>`
-  }];
-
-  let genMnemonicAlias = 1;
-}
-
-// Test attribute containing a slash token
-def SlashAttr: Test_Attr<"Slash">{
-  let mnemonic = "slash_attr";
-
-  let parameters = (
-    ins
-    "int":$lhs,
-    "int":$rhs
-  );
-
-  let hasCustomAssemblyFormat = 1;
 }
 
 def TestCustomStorageCtorAttr : Test_Attr<"TestCustomStorageCtorAttr"> {
